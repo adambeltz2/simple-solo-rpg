@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useCharacterStore } from '../../store/useCharacterStore';
 import {
   askOracle, rollComplication, generateNpc, xpBudget, LIKELIHOOD_LABELS, type Likelihood, type OracleResult, type GeneratedNpc,
@@ -120,7 +120,7 @@ export default function OraclePage() {
         </div>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-faint)', marginTop: 8 }}>
           A homebrew estimate, not an official table — solo characters are fragile, so err toward Low/Moderate unless you
-          have a sidekick or strong escape plan. Browse the <a href="/compendium/monsters">Monster Compendium</a> for stat
+          have a sidekick or strong escape plan. Browse the <Link to="/compendium/monsters">Monster Compendium</Link> for stat
           blocks and XP values, then set up the fight in the Combat tab.
         </p>
       </div>

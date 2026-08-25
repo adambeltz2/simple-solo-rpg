@@ -20,6 +20,11 @@ they come up — see `CHANGELOG.md` for the dated record of what actually shippe
       conditions, species, classes, backgrounds)
 - [x] Local save/export/import (localStorage + JSON)
 
+## Deployment
+
+- [x] GitHub Pages hosting via a GitHub Actions build-and-deploy workflow, with
+      hash-based routing so deep links survive Pages' static hosting
+
 ## Data
 
 - [ ] Swap in the full 2024 SRD spell list once `5e-bits/5e-database` publishes one
