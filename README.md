@@ -46,6 +46,15 @@ npm run build
 npm run preview
 ```
 
+## Live site
+
+Deployed automatically to GitHub Pages on every push to `main`:
+**https://adambeltz2.github.io/simple-solo-rpg/**
+
+The app uses hash-based routing (`/#/character/...`) specifically so that deep links
+and page refreshes work correctly on Pages' static hosting, which has no server-side
+rewrite rules for a single-page app.
+
 ## Content sources & attribution
 
 Rules content is drawn from Wizards of the Coast's System Reference Documents:

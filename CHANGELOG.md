@@ -5,6 +5,17 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- Deployed to GitHub Pages via a GitHub Actions workflow that builds and publishes on
+  every push to `main` (https://adambeltz2.github.io/simple-solo-rpg/).
+
+### Changed
+
+- Switched routing from `BrowserRouter` to `HashRouter` so deep links and page
+  refreshes work correctly under GitHub Pages' static hosting (no server-side rewrites
+  available for a single-page app).
+
 ## [0.1.0] - 2026-08-25
 
 Initial release: a frontend-only, browser-based toolkit for playing D&D (2024 rules)

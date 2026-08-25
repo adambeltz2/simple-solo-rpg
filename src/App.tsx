@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 
 const HomePage = lazy(() => import('./features/home/HomePage'));
@@ -13,7 +13,7 @@ const CompendiumPage = lazy(() => import('./features/compendium/CompendiumPage')
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Suspense fallback={<div className="container">Loading...</div>}>
         <Routes>
           <Route element={<Layout />}>
@@ -30,6 +30,6 @@ export default function App() {
           </Route>
         </Routes>
       </Suspense>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
