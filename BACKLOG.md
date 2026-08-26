@@ -60,5 +60,8 @@ they come up — see `CHANGELOG.md` for the dated record of what actually shippe
 - [ ] Light theme toggle (currently dark-theme only)
 - [ ] Character portrait/avatar upload
 - [ ] Export character sheet to PDF
+- [ ] Import/export user-defined data (characters, journal entries, etc.) as Markdown,
+      rendered through user-editable templates — a human-readable/editable alternative
+      to the existing JSON export
 - [ ] PWA / offline support
 - [ ] Automated test suite (unit tests for domain logic, component tests for key flows)
