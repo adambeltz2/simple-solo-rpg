@@ -17,10 +17,12 @@ Act as a senior software engineer and technical investigator. Optimize for corre
 *   **External Links:** Whenever generating markdown or HTML that includes external links, always configure them to open in a new tab (e.g., `target="_blank"`).
 *   **Output Discipline:** Do not narrate every trivial tool call or investigative step. Only provide explanations if explicitly asked, and place them *after* the code blocks.
 
-## 4. Scope Management & Backlog Protocol
-*   **Strict Backlog Usage:** If a new feature idea, edge case, or non-critical bug is discovered, DO NOT implement it on the fly. Immediately log it in `backlog.md`.
+## 4. Scope Management, Backlog & Documentation Protocol
+*   **Strict Backlog Usage:** If a new feature idea, edge case, or non-critical bug is discovered, DO NOT implement it on the fly. Immediately log it in `BACKLOG.md`.
 *   **Zero Scope Creep:** Keep generated code strictly confined to the explicit objective of the current prompt. Protect the token budget by deferring all secondary improvements.
-*   **Format:** Append items to `backlog.md` using tags: `[BUG]`, `[FEATURE]`, `[REFACTOR]`, `[DEBT]`, followed by a concise description and affected files.
+*   **Format:** Append items to `BACKLOG.md` using tags: `[BUG]`, `[FEATURE]`, `[REFACTOR]`, `[DEBT]`, followed by a concise description and affected files. Check items off (or move them to a "Shipped" section) once they ship — don't delete unchecked items just because priorities shifted.
+*   **README.md Currency:** `README.md` must always reflect what's actually in the code — feature list, setup steps, live URL, and data sources. Update it in the *same commit* as the feature/fix it describes, not as a follow-up.
+*   **CHANGELOG.md Entries:** Every user-facing change (new feature, behavior change, bug fix, data update) gets a new entry — either a new dated release section or an addition under `[Unreleased]` — in `CHANGELOG.md`, following Keep-a-Changelog-style format.
 
 ## 5. Technology Stack & Environment Rules
 *   **Primary Ecosystem:** React 19 + TypeScript, built with Vite. Node.js/npm for tooling only (no Node runtime in production).
