@@ -41,6 +41,7 @@ function enterSlot(i) {
   if (s.opts.length === 1) { enterRoom(s.opts[0]); return; }
   run.phase = 'doors';
   run.cur = null;
+  run.doorIdeas = null;
   say('head', 'Two ways onward');
   changed();
 }
@@ -48,7 +49,7 @@ function enterSlot(i) {
 function doorInfo(id) {
   const room = run.adv.rooms[id];
   const passive = 10 + skillMod(hero, 'perception');
-  const exact = passive >= 13 || flag('scouted');
+  const exact = passive >= 13 || flag('scouted') || flag('scouted_' + run.slot);
   return { id, label: cap(room.name), hint: cap(room.hint), exact, kind: exact ? TYPE_LABEL[room.type] || '' : '' };
 }
 function chooseDoor(id) {
@@ -193,7 +194,7 @@ function finishChoice(c, ok, res) {
   if (!text) text = fill(pickR((ok ? TPL.succ : TPL.fail)[c.skill] || ['It is done.']), { obj: room.obj || 'it', Obj: cap(room.obj || 'it') });
   if (res && res.crit) { text += ' A flawless effort.'; if (gainFortune(1) > 0) text += ' (+1 Fortune)'; }
   if (res && res.fumble) text += ' Bad luck.';
-  const facts = factsFor('outcome', text, { action: c.label, result: ok ? 'success' : 'failure', place: room.name });
+  const facts = factsFor('outcome', text, { action: c.label, result: ok ? 'success' : 'failure', place: room.name, free: !!c.free, scene: c.free ? sceneText() : '' });
   narr(text, facts);
   if (res && res.fumble) { tickClock(1); }
   let out = { combat: null };
@@ -210,6 +211,14 @@ function finishChoice(c, ok, res) {
   if (out.combat) {
     out.combat.roomId = room.id;
     startCombat(out.combat, room);
+    return;
+  }
+  if (c.probe) {
+    /* a preparation: the scene itself is still ahead of you */
+    cur.probed = true;
+    cur.choices = cur.choices.filter((x) => !x.idea && x.id !== c.id);
+    save();
+    changed();
     return;
   }
   settleRoom();

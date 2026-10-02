@@ -93,6 +93,7 @@ const AI = {
 const aiOn = () => S && S.settings.narrator === 'ai' && AI.status === 'ready' && !!AI.engine;
 
 const NARR_SYS = 'You are the narrator of a solo fantasy dungeon-crawl tabletop game. Rewrite the DRAFT as vivid prose in second person, present tense. Keep every fact, name, number and outcome exactly as written. Never add new characters, items, monsters or events. Never offer choices or ask questions. Output only the rewritten passage, 2 to 4 sentences.';
+const NARR_FREE = 'You are the narrator of a solo fantasy dungeon-crawl tabletop game. The hero tried the ACTION below, and it ended in the stated RESULT. In 2 to 3 sentences, second person, present tense, describe how that attempt plays out so it clearly answers what the hero tried. If the hero asked what writing, symbols or speech say, give a short, modest answer that fits the scene and the quest without changing the plot. Keep the RESULT exactly (success or failure). Never add new monsters, named characters or magic items. Treat the DRAFT only as mood and ignore any detail in it that does not fit the ACTION. Output only the passage.';
 function cleanNarration(t, draft) {
   t = String(t || '').replace(/^\s*(narrator|passage|rewritten passage)\s*:\s*/i, '').replace(/[*_#`>]/g, '').replace(/\s+\n/g, '\n').trim();
   if (t.length < 25) return null;
@@ -102,15 +103,21 @@ function cleanNarration(t, draft) {
   if (t.length > 900) return null;
   return t;
 }
+/* The narrator works at the reader's pace: one passage per beat (a beat ends when the player taps something), the
+   passage stays blank with a cursor until its first words arrive instead of showing the draft and then replacing it,
+   and nothing further is written until the player moves on. */
 const Narrator = {
-  queue: [], running: null,
+  queue: [], running: null, beatUsed: false,
   request(entry, facts) {
-    if (!aiOn()) return;
+    if (!aiOn() || this.beatUsed) return;
+    this.beatUsed = true;
+    entry.wait = true;
     this.queue.push({ entry, facts });
-    if (this.queue.length > 3) this.queue.shift();
     this.pump();
   },
   userMoved() {
+    this.beatUsed = false;
+    this.queue.forEach((j) => { j.entry.wait = false; if (ui.onEntry) ui.onEntry(j.entry); });
     this.queue.length = 0;
     if (this.running) { this.running.aborted = true; AI.interrupt(); }
   },
@@ -119,7 +126,7 @@ const Narrator = {
     const job = this.queue.shift();
     if (!job) return;
     this.running = job;
-    try { await this.runJob(job); } catch (e) { job.entry.t = job.entry.tpl; job.entry.live = false; if (ui.onEntry) ui.onEntry(job.entry); }
+    try { await this.runJob(job); } catch (e) { job.entry.t = job.entry.tpl; job.entry.live = false; job.entry.wait = false; if (ui.onEntry) ui.onEntry(job.entry); }
     this.running = null;
     this.pump();
   },
@@ -130,17 +137,21 @@ const Narrator = {
     lines.push('Hero: ' + f.hero + '.');
     if (f.backstory) lines.push('Hero backstory: ' + String(f.backstory).slice(0, 240));
     if (f.recent && f.recent.length) lines.push('Recent events: ' + f.recent.join('; ') + '.');
-    if (f.action) lines.push('The hero just chose to: ' + f.action + ' (' + f.result + ').');
+    if (f.free) {
+      lines.push('Scene: ' + String(f.scene || '').slice(0, 400));
+      lines.push('ACTION: ' + String(f.action).replace(/^[✎💡]\s*/, '') + '\nRESULT: ' + f.result);
+    } else if (f.action) lines.push('The hero just chose to: ' + f.action + ' (' + f.result + ').');
     lines.push('DRAFT: ' + f.draft);
     const long = f.kind === 'twist' || f.kind === 'boss' || f.kind === 'epilogue';
     e.live = true;
     if (ui.onEntry) ui.onEntry(e);
     let last = '';
-    const text = await AI.chat([{ role: 'system', content: NARR_SYS }, { role: 'user', content: lines.join('\n') }], {
+    const text = await AI.chat([{ role: 'system', content: f.free ? NARR_FREE : NARR_SYS }, { role: 'user', content: lines.join('\n') }], {
       max: long ? 170 : 120,
-      onToken: (t) => { last = t; if (!job.aborted) { e.t = t; if (ui.onEntry) ui.onEntry(e); } },
+      onToken: (t) => { last = t; if (!job.aborted) { e.wait = false; e.t = t; if (ui.onEntry) ui.onEntry(e); } },
     });
     e.live = false;
+    e.wait = false;
     const cleaned = cleanNarration(job.aborted ? last : text, f.draft);
     if (cleaned && (!job.aborted || cleaned.length > 70)) { e.t = cleaned; e.ai = true; } else e.t = e.tpl;
     if (ui.onEntry) ui.onEntry(e);
@@ -169,34 +180,54 @@ const KEYWORDS = [
   [/\b(sense|insight|motive|read them|mood|truth)/i, 'insight'],
   [/\b(attack|kill|stab|slash|fight|strike|charge|slay|hit|shoot)/i, 'attack'],
 ];
+const INQUIRY = /\?\s*$|^\s*(what|who|why|how|where|when|does|do|is|are|can|could|tell|show|which)\b|\b(say|says|said|written|writing|inscription|inscribed|text|words|mean|means|meaning|decipher|symbol|symbols|sign|signs|carving|carvings|mural|label)\b/i;
+function bestOf(list) {
+  const u = Array.from(new Set(list.filter((k) => SKILLS[k])));
+  return u.sort((a, b) => skillMod(hero, b) - skillMod(hero, a))[0];
+}
+/* a question or "what does it say": the player wants to find out, so pick a skill of the mind that fits this scene */
+function inquireSkill() {
+  const room = run && run.roomId != null ? run.adv.rooms[run.roomId] : null;
+  const own = room ? [room.skill, room.alt].concat(room.good || []) : [];
+  const mindOnly = own.filter((k) => SKILL_CAT[k] === 'mind');
+  return bestOf(mindOnly.length ? mindOnly : ['investigation', 'history', 'religion', 'insight', 'perception']);
+}
 function keywordIntent(text) {
   for (let i = 0; i < KEYWORDS.length; i++) if (KEYWORDS[i][0].test(text)) return KEYWORDS[i][1];
-  /* no keyword: use whatever the hero is best at among broad skills */
-  const pool = ['investigation', 'perception', 'persuasion', 'athletics', 'insight'];
-  return pool.slice().sort((a, b) => skillMod(hero, b) - skillMod(hero, a))[0];
+  if (INQUIRY.test(text)) return inquireSkill();
+  /* no keyword: use whatever the hero is best at among skills that rarely misfire */
+  return bestOf(['investigation', 'perception', 'persuasion', 'insight']);
 }
 async function parseIntent(text) {
   if (aiOn()) {
     try {
       const schema = { type: 'object', properties: { approach: { type: 'string', enum: APPROACHES } }, required: ['approach'] };
       const out = await AI.chat([
-        { role: 'system', content: 'Classify a fantasy tabletop RPG player action into one approach. Reply as JSON. Skills: ' + APPROACHES.join(', ') + '. "attack" means starting violence.' },
-        { role: 'user', content: 'Action: "' + String(text).slice(0, 200).replace(/"/g, "'") + '"' },
+        { role: 'system', content: 'Classify a fantasy tabletop RPG player action into the one skill the hero would really use. Reply as JSON. Skills: ' + APPROACHES.join(', ') + '. Guide: asking what writing, symbols or carvings say, or recalling lore = history, religion or arcana; studying or searching = investigation; noticing or listening = perception; reading a person = insight; talking = persuasion, deception or intimidation; sneaking = stealth; force, climbing or breaking = athletics; "attack" means starting violence. A question is never athletics or attack.' },
+        { role: 'user', content: 'Scene: ' + sceneText().slice(0, 300).replace(/"/g, "'") + '\nAction: "' + String(text).slice(0, 200).replace(/"/g, "'") + '"' },
       ], { json: schema, max: 40 });
       const j = JSON.parse(out);
-      if (j && APPROACHES.includes(j.approach)) return j.approach;
+      if (j && APPROACHES.includes(j.approach)) {
+        /* small models sometimes answer a question with a physical skill: keep questions to the mind */
+        if (INQUIRY.test(text) && ['athletics', 'acrobatics', 'attack', 'stealth', 'sleight', 'intimidation'].includes(j.approach) && !KEYWORDS.some((k) => k[0].test(text) && k[1] === j.approach)) return keywordIntent(text);
+        return j.approach;
+      }
     } catch (e) { /* fall back to keywords */ }
   }
   return keywordIntent(text);
 }
-const FREE_TYPES = ['combat', 'trap', 'puzzle', 'hazard', 'lore', 'treasure', 'social', 'entrance'];
+const FREE_TYPES = ['combat', 'trap', 'puzzle', 'hazard', 'lore', 'treasure', 'social', 'entrance', 'rest', 'twist', 'boss'];
+const PROBE_TYPES = ['twist', 'boss']; // improvised actions here prepare you; they never skip the scene itself
 function canFreeAct() {
   if (!run || run.phase !== 'room' || !run.cur) return false;
   const room = run.adv.rooms[run.roomId];
   if (!FREE_TYPES.includes(room.type)) return false;
   if (room.type === 'social') return run.cur.acts < 2;
+  if (PROBE_TYPES.includes(room.type)) return !run.cur.resolved && !run.cur.probed;
   return !run.cur.resolved;
 }
+const canDoorIdeas = () => !!run && run.phase === 'doors' && !flag('scoutTried_' + run.slot);
+const canIdeas = () => canFreeAct() || canDoorIdeas();
 async function freeAction(text) {
   text = String(text || '').trim().slice(0, 140);
   if (!text || !canFreeAct()) return;
@@ -206,6 +237,11 @@ async function freeAction(text) {
   withDice(() => resolveFree(text, skillKey, roomId));
 }
 function buildFreeChoice(label, skillKey, room) {
+  const c = buildFreeChoice0(label, skillKey, room);
+  c.free = true;
+  return c;
+}
+function buildFreeChoice0(label, skillKey, room) {
   const L = hero.level;
   let skill = skillKey === 'attack' ? 'athletics' : skillKey;
   let dc = room.dc || room.ambushDC || room.dcTalk || dcFor(L, 0);
@@ -224,13 +260,22 @@ function buildFreeChoice(label, skillKey, room) {
   } else if (room.type === 'entrance') {
     s = { flags: ['quiet_start'], clue: 0 };
     f = { alert: 1 };
+  } else if (room.type === 'rest') {
+    dc = dcFor(L, 0);
+    s = { rest: 0.4, clock: 1 };
+    f = { rest: 0.15, clock: 1 };
+    return C(label, { kind: 'check', skill, dc, s, f, ok: 'The quiet does you good.', no: 'Sleep comes thin and restless, but it is something.', drive: 'curiosity' });
+  } else if (room.type === 'twist') {
+    return C(label, { kind: 'check', skill, dc: dcFor(L, 1), s: { clue: 1 }, f: { clock: 1 }, ok: 'You watch closely, and a small detail clicks into place.', no: 'You miss what mattered, and the moment slips past.', drive: 'curiosity', probe: true });
+  } else if (room.type === 'boss') {
+    if (skillKey === 'attack') return C(label, { kind: 'combat', fx: { combat: { boss: true, surprise: null } } });
+    return C(label, { kind: 'check', skill, dc: dcFor(L, 1), s: { clue: 1 }, f: { alert: 1 }, ok: 'You watch and wait, and the lair begins to make sense. You will know better where to strike.', no: 'You linger too long. A flicker of movement says you were seen.', drive: 'curiosity', probe: true });
   } else {
     if (room.good && room.good.includes(skill)) dc -= 2;
     else if (skill !== room.skill && skill !== room.alt) dc += 2;
   }
-  const ok = fill(pickR(TPL.succ[skill]), { obj: room.obj || 'it', Obj: cap(room.obj || 'it') });
-  const no = fill(pickR(TPL.fail[skill]), { obj: room.obj || 'it', Obj: cap(room.obj || 'it') });
-  return C(label, { kind: 'check', skill, dc, s, f, ok, no, drive: 'curiosity' });
+  const cat = SKILL_CAT[skill] || 'mind';
+  return C(label, { kind: 'check', skill, dc, s, f, ok: pickR(TPL.freeOk[cat]), no: pickR(TPL.freeNo[cat]), drive: 'curiosity' });
 }
 function resolveFree(text, skillKey, roomId) {
   const room = run.adv.rooms[roomId];
@@ -248,6 +293,10 @@ const IDEA_POOL = {
   puzzle: [['Look for wear on the mechanism to see what is used most', 'perception'], ['Search for a second trigger the makers hid', 'investigation'], ['Recall similar devices from old stories', 'history'], ['Trace the pattern with a steady hand', 'sleight'], ['Ask what the makers would want protected', 'insight']],
   hazard: [['Test the way with a thrown pebble first', 'survival'], ['Watch how it shifts and time your crossing', 'perception'], ['Improvise a bridge from your pack', 'athletics'], ['Look for how animals get across', 'nature'], ['Leap from the safest footing you can see', 'acrobatics']],
   lore: [['Copy the key lines to study later', 'investigation'], ['Set it beside what you already know of this place', 'history'], ['Look for what was scratched out', 'perception'], ['Read it aloud, softly, and listen', 'religion'], ['Ask who wanted this kept, and why', 'insight']],
+  rest: [['Share a quiet watch and trade stories', 'insight'], ['Treat old injuries properly', 'medicine'], ['Mend and sharpen your gear', 'sleight'], ['Find a safer corner to bed down', 'survival'], ['Say a quiet prayer for the road ahead', 'religion']],
+  twist: [['Watch how everyone reacts before you speak', 'insight'], ['Compare what you were told with what you see', 'investigation'], ['Recall how betrayals like this usually unfold', 'history'], ['Look around the room for evidence', 'perception']],
+  boss: [['Study the lair from the shadows first', 'perception'], ['Look for the weak point in their guard', 'insight'], ['Search the lair for something to use against them', 'investigation'], ['Recall what lore says of such foes', 'arcana'], ['Listen to what they tell their followers', 'stealth']],
+  doors: [['Listen at each way before choosing', 'perception'], ['Read the tracks and dust at both thresholds', 'survival'], ['Study the carvings for hints about what lies beyond', 'history'], ['Smell the air drifting from each way', 'nature'], ['Send a small noise down one way and wait', 'stealth'], ['Work out which way the guards would least expect', 'insight']],
   treasure: [['Check the lid and hinges for tricks', 'investigation'], ['Listen at the lock', 'perception'], ['Take only what will not be missed', 'sleight'], ['Look for who has been here before you', 'survival'], ['Test it for old magic first', 'arcana']],
   social: [['Offer something small before asking anything', 'persuasion'], ['Ask what they are most afraid of', 'insight'], ['Tell them a careful half-truth', 'deception'], ['Find common ground over a shared enemy', 'persuasion'], ['Stand your ground and name your terms', 'intimidation']],
   entrance: [['Scout the walls for guard routines', 'perception'], ['Wait, then follow someone inside', 'stealth'], ['Make a distraction at the far side', 'deception'], ['Read the tracks around the entrance', 'survival'], ['Climb to a ledge and look down on the place', 'athletics']],
@@ -271,16 +320,25 @@ function sceneText() {
   for (let i = run.log.length - 1; i >= 0; i--) { const e = run.log[i]; if (e.k === 'narr' && e.tpl) return e.tpl; }
   return '';
 }
+function doorsContext() {
+  const ids = run.adv.slots[run.slot].opts;
+  return ids.map((id) => { const r = run.adv.rooms[id]; return cap(r.name) + ' (' + r.hint + ')'; });
+}
 async function aiIdeas(room, avoid) {
   const schema = { type: 'object', properties: { ideas: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'object', properties: { action: { type: 'string' }, approach: { type: 'string', enum: APPROACHES } }, required: ['action', 'approach'] } } }, required: ['ideas'] };
   const lines = [];
-  lines.push('Place: ' + room.name + ' (' + themeOf().n + ').');
-  lines.push('Scene: ' + sceneText().slice(0, 420));
-  if (room.enemies && room.enemies.length) lines.push('Foes here: ' + enemyNames(room.enemies) + '.');
+  if (!room) {
+    lines.push('Place: a fork in the passage (' + themeOf().n + '). Two ways lead on: ' + doorsContext().join(' or ') + '.');
+    lines.push('The hero wants to learn something about the two ways before choosing.');
+  } else {
+    lines.push('Place: ' + room.name + ' (' + themeOf().n + ').');
+    lines.push('Scene: ' + sceneText().slice(0, 420));
+    if (room.enemies && room.enemies.length) lines.push('Foes here: ' + enemyNames(room.enemies) + '.');
+  }
   lines.push('Hero: ' + hero.name + ', ' + SPECIES[hero.species].n + ' ' + CLASSES[hero.cls].n + ', ' + BACKGROUNDS[hero.bg].n + '.');
   if (hero.story) lines.push('Hero backstory: ' + String(hero.story).slice(0, 200));
   lines.push('Goal of the quest: ' + run.adv.goal + '.');
-  lines.push('Options the player already has (do not repeat them): ' + run.cur.choices.filter((c) => c.id !== 'continue' && c.id !== 'search').map((c) => c.label).join('; ') + '.');
+  lines.push('Options the player already has (do not repeat them): ' + (room ? run.cur.choices.filter((c) => c.id !== 'continue' && c.id !== 'search').map((c) => c.label) : doorsContext()).join('; ') + '.');
   const out = await AI.chat([
     { role: 'system', content: 'You help a solo fantasy tabletop player who feels the menu is too narrow. Suggest 3 different, creative things the hero could try right now. Use only what the scene mentions; never invent new monsters, people or magic items. Each action is a short imperative phrase of at most 9 words, written for the hero (no "you"). Make the three clearly different from each other, and pick the approach (skill) that fits each. "attack" means starting violence. Reply as JSON.' },
     { role: 'user', content: lines.join('\n') },
@@ -296,10 +354,12 @@ async function aiIdeas(room, avoid) {
   return res.slice(0, 3);
 }
 async function makeIdeas() {
-  if (ideasBusy || !canFreeAct()) return;
-  const roomId = run.roomId, curRef = run.cur;
-  const room = run.adv.rooms[roomId];
-  const avoid = new Set(run.cur.choices.map((c) => String(c.label).replace(/^[✎💡]\s*/, '').toLowerCase()));
+  if (ideasBusy || !canIdeas()) return;
+  const atDoors = run.phase === 'doors';
+  const roomId = run.roomId, slot = run.slot, curRef = run.cur;
+  const room = atDoors ? null : run.adv.rooms[roomId];
+  const avoid = new Set(atDoors ? [] : run.cur.choices.map((c) => String(c.label).replace(/^[✎💡]\s*/, '').toLowerCase()));
+  const stale = () => !run || (atDoors ? !canDoorIdeas() || run.slot !== slot : run.roomId !== roomId || run.cur !== curRef || !canFreeAct());
   let ideas = [];
   let via = 'built-in';
   if (aiOn()) {
@@ -307,16 +367,40 @@ async function makeIdeas() {
     changed();
     try { ideas = await aiIdeas(room, avoid); via = 'ai'; } catch (e) { ideas = []; }
     ideasBusy = false;
-    if (!run || run.roomId !== roomId || run.cur !== curRef || !canFreeAct()) { if (run) changed(); return; }
+    if (stale()) { if (run) changed(); return; }
   }
   if (ideas.length < 3) {
     const have = new Set(Array.from(avoid).concat(ideas.map((x) => x.label.toLowerCase())));
-    poolIdeas(room, 3 - ideas.length, have).forEach((x) => ideas.push(x));
+    poolIdeas(room || { type: 'doors' }, 3 - ideas.length, have).forEach((x) => ideas.push(x));
   }
-  run.cur.choices = run.cur.choices.filter((c) => !c.idea || run.cur.used.includes(c.id));
-  const at = run.cur.choices.findIndex((c) => c.id === 'continue' || c.id === 'search');
-  const made = ideas.slice(0, 3).map((x) => { const c = buildFreeChoice('💡 ' + x.label, x.approach, room); c.idea = via; return c; });
-  if (at >= 0) run.cur.choices.splice(at, 0, ...made); else run.cur.choices.push(...made);
+  ideas = ideas.slice(0, 3);
+  if (atDoors) {
+    const dc = dcFor(hero.level, 0);
+    run.doorIdeas = ideas.map((x, i) => ({ id: 'd' + i, label: '💡 ' + x.label, skill: x.approach === 'attack' ? 'perception' : x.approach, dc, idea: via }));
+  } else {
+    run.cur.choices = run.cur.choices.filter((c) => !c.idea || run.cur.used.includes(c.id));
+    const at = run.cur.choices.findIndex((c) => c.id === 'continue' || c.id === 'search');
+    const made = ideas.map((x) => { const c = buildFreeChoice('💡 ' + x.label, x.approach, room); c.idea = via; return c; });
+    if (at >= 0) run.cur.choices.splice(at, 0, ...made); else run.cur.choices.push(...made);
+  }
+  save();
+  changed();
+}
+/* an idea at a fork: a scouting check. Success shows what waits behind each way; failure costs time. */
+function doorIdea(i) {
+  if (!run || run.phase !== 'doors') return;
+  const c = (run.doorIdeas || [])[i];
+  if (!c) return;
+  say('choice', c.label);
+  const res = doCheck(c.skill, c.dc, 0);
+  say('roll', rollChip(res), { ok: res.ok });
+  led().flags['scoutTried_' + run.slot] = true;
+  run.doorIdeas = null;
+  let text;
+  if (res.ok) { setFlag('scouted_' + run.slot); text = 'You take your time, and it pays off. You can now tell what waits behind each way.'; }
+  else { tickClock(1); text = 'You spend precious time and learn little. The dark feels a little closer.'; }
+  if (res.crit && gainFortune(1) > 0) text += ' A flawless effort. (+1 Fortune)';
+  narr(text, factsFor('outcome', text, { action: c.label, result: res.ok ? 'success' : 'failure', place: 'a fork in the passage' }));
   save();
   changed();
 }

@@ -176,8 +176,37 @@ async function playOne(i) {
         if (w.document.querySelectorAll('#actsin .opt.ideas').length !== 1) errs.push('ideas button missing');
         if (rnd() < 0.7 && ideas.length) {
           const pre = JSON.stringify(D.S);
-          w.document.querySelector('#actsin [data-a="pick:' + ideas[Math.floor(rnd() * ideas.length)].id + '"]').click();
+          const chosen = ideas[Math.floor(rnd() * ideas.length)];
+          const roomType = run.adv.rooms[run.roomId].type;
+          w.document.querySelector('#actsin [data-a="pick:' + chosen.id + '"]').click();
           await answerDice(pre);
+          if (D.S.run && (roomType === 'twist' || roomType === 'boss') && chosen.probe && D.run.phase === 'room' && D.run.cur) {
+            stats.probes = (stats.probes || 0) + 1;
+            if (!D.run.cur.probed || D.run.cur.resolved || D.run.cur.choices.every((c) => c.id === 'continue' || c.idea)) errs.push('probe resolved or emptied the ' + roomType + ' scene');
+            if (D.run.cur.choices.some((c) => c.idea)) errs.push('ideas left after probe');
+          }
+          if (D.S.run && roomType === 'rest') stats.restIdeas = (stats.restIdeas || 0) + 1;
+        }
+        continue;
+      } else if (run.phase === 'doors' && rnd() < 0.35 && w.document.querySelector('#actsin [data-a="ideas"]:not([disabled])')) {
+        w.document.querySelector('#actsin [data-a="ideas"]').click();
+        for (let t = 0; t < 8 && w.document.querySelector('#actsin [data-a="ideas"][disabled]'); t++) await tick();
+        await tick(); await tick();
+        const di = D.run.doorIdeas || [];
+        stats.doorIdeas = (stats.doorIdeas || 0) + di.length;
+        if (di.length !== 3) errs.push('expected 3 door ideas, got ' + di.length);
+        di.forEach((c) => { if (!c.label || /undefined|null|\{/.test(c.label) || !SKILLS_OK.has(c.skill)) errs.push('bad door idea ' + JSON.stringify(c)); });
+        if (w.document.querySelectorAll('#actsin [data-a^="didea:"]').length !== di.length) errs.push('door idea buttons missing');
+        if (rnd() < 0.8 && di.length) {
+          const pre = JSON.stringify(D.S);
+          const slot = D.run.slot;
+          w.document.querySelector('#actsin [data-a="didea:' + Math.floor(rnd() * di.length) + '"]').click();
+          await answerDice(pre);
+          if (D.S.run && D.run.phase === 'doors') {
+            if (!D.run.led.flags['scoutTried_' + slot]) errs.push('door idea did not register');
+            if (w.document.querySelector('#actsin [data-a="ideas"]') || w.document.querySelector('#actsin [data-a^="didea:"]')) errs.push('door ideas still offered after use');
+            stats.doorUsed = (stats.doorUsed || 0) + 1;
+          }
         }
         continue;
       } else if (run.phase === 'room' && rnd() < 0.12 && w.document.getElementById('free')) {
@@ -210,7 +239,7 @@ async function playOne(i) {
 
 (async () => {
   for (let i = 0; i < N; i++) await playOne(i);
-  console.log(JSON.stringify({ ideas: stats.ideas || 0, ideaCalls: stats.ideaCalls || 0, dice: DICE, prompts: stats.prompts, promptKinds: stats.promptKinds, rejected: stats.rejected, runs: stats.runs, steps: stats.steps, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
+  console.log(JSON.stringify({ doorIdeas: stats.doorIdeas || 0, doorUsed: stats.doorUsed || 0, probes: stats.probes || 0, restIdeas: stats.restIdeas || 0, ideas: stats.ideas || 0, ideaCalls: stats.ideaCalls || 0, dice: DICE, prompts: stats.prompts, promptKinds: stats.promptKinds, rejected: stats.rejected, runs: stats.runs, steps: stats.steps, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
   console.log('ERRORS', stats.errors.length);
   stats.errors.slice(0, 6).forEach((e) => console.log(JSON.stringify(e)));
   console.log('BADTEXT', stats.badText.length);

@@ -1,4 +1,5 @@
 /* ---------- game data ---------- */
+const SKILL_CAT = { athletics: 'body', acrobatics: 'body', stealth: 'sneak', sleight: 'sneak', arcana: 'mind', history: 'mind', investigation: 'mind', nature: 'mind', religion: 'mind', insight: 'mind', medicine: 'mind', perception: 'mind', survival: 'mind', deception: 'social', intimidation: 'social', persuasion: 'social' };
 const SKILLS = {
   athletics: { n: 'Athletics', a: 'str' }, acrobatics: { n: 'Acrobatics', a: 'dex' }, stealth: { n: 'Stealth', a: 'dex' },
   sleight: { n: 'Sleight of Hand', a: 'dex' }, arcana: { n: 'Arcana', a: 'int' }, history: { n: 'History', a: 'int' },
@@ -284,6 +285,19 @@ const TPL = {
     treasure: ['You find {obj}, tucked out of sight.', '{Obj} sits in the corner, as if waiting for someone patient.'],
     rest: ['A rare quiet. This corner is dry, defensible, and strangely untouched.', 'You find a still pocket in the dungeon, sheltered from the worst of it.'],
     social: ['A {role} sits {d}. They {act}.', 'You are not alone. A {role} is here, {d}. They {act}.'],
+  },
+  /* outcomes for actions the player improvised: no object or method is named, so they never contradict what was tried */
+  freeOk: {
+    body: ['You commit to it with everything you have, and it works.', 'Strength and timing are on your side, and it goes your way.'],
+    sneak: ['Quiet, patient and quick, you pull it off without a sound.', 'Nobody sees, nobody hears. It works.'],
+    mind: ['You think it through, and what you work out is useful.', 'A careful look and a clear head give you what you were after.'],
+    social: ['You choose your words with care, and they land.', 'It takes nerve, but it works.'],
+  },
+  freeNo: {
+    body: ['You give it everything, but it is not enough.', 'It goes wrong at the last moment, and you pay for it in sweat and time.'],
+    sneak: ['A scuff, a clink. You are not as quiet as you hoped.', 'It goes wrong at the worst moment, and someone notices.'],
+    mind: ['You try hard, but it will not give up its meaning.', 'Whatever it means, it stays just out of reach.'],
+    social: ['The words come out wrong, and they know it.', 'It falls flat. Nobody is convinced.'],
   },
   succ: {
     athletics: ['You throw your shoulder into it, and {obj} gives way with a groan.', 'Muscle and momentum carry you through {obj}.'],

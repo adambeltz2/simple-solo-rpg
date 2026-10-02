@@ -144,12 +144,12 @@ function entryCls(e) {
   const map = { head: 'head', narr: 'narr', sys: 'sys', roll: 'roll', dmg: 'dmg', choice: 'choice' };
   let cls = map[e.k] || 'sys';
   if (e.k === 'roll') cls += e.ok ? ' ok' : ' bad';
-  if (e.k === 'narr' && e.live) cls += ' live';
+  if (e.k === 'narr' && (e.live || e.wait)) cls += ' live';
   return cls;
 }
 function setEntry(el, e) {
   el.className = entryCls(e);
-  el.textContent = e.t;
+  el.textContent = e.wait ? '' : e.t;
 }
 function appendLog() {
   const log = document.getElementById('log');
@@ -166,7 +166,7 @@ function appendLog() {
     if (!firstNew) firstNew = el;
   });
   if (!firstNew) return;
-  if (first) {
+  if (first && run.log.length > 8) {
     /* opening an adventure in progress: jump straight to the latest text */
     log.style.scrollBehavior = 'auto';
     log.scrollTop = log.scrollHeight;
@@ -181,7 +181,7 @@ function appendLog() {
 }
 ui.onEntry = (e) => {
   const el = V.els.get(e.id);
-  if (el) { setEntry(el, e); const log = document.getElementById('log'); if (log && log.scrollHeight - log.scrollTop - log.clientHeight < 140) log.scrollTop = log.scrollHeight; }
+  if (el) { setEntry(el, e); const log = document.getElementById('log'); if (log && log.scrollHeight - log.scrollTop - log.clientHeight < 40) log.scrollTop = log.scrollHeight; }
 };
 function optHtml(c) {
   let sub = '';
@@ -203,6 +203,10 @@ function renderActs() {
       const d0 = doorInfo(id);
       return '<button class="opt door" data-a="door:' + id + '"><b>' + esc(d0.label) + '</b>' + esc(d0.hint) + (d0.kind ? '<br><span class="k">' + esc(d0.kind) + '</span>' : '') + '</button>';
     }).join('');
+    if (canDoorIdeas()) {
+      (run.doorIdeas || []).forEach((c, i) => { h += '<button class="opt" data-a="didea:' + i + '">' + esc(c.label) + '<small>' + SKILLS[c.skill].n + ' &middot; ' + needWord(skillMod(hero, c.skill), c.dc) + ' &middot; ' + (c.idea === 'ai' ? 'AI idea' : 'idea') + ' &middot; learn what each way holds</small></button>'; });
+      h += '<button class="opt ideas" data-a="ideas" ' + (ideasBusy ? 'disabled' : '') + '>' + (ideasBusy ? '💡 Thinking…' : run.doorIdeas ? '💡 More ideas' : '💡 Think of something else') + '<small>' + (aiOn() ? 'The on-device AI suggests ways to scout' : 'Built-in ideas · turn on the narrator for AI-written ones') + '</small></button>';
+    }
     h += miniRow();
   } else if (ph === 'room') {
     h += run.cur.choices.map(optHtml).join('');
@@ -472,6 +476,7 @@ function onAct(a, el) {
   if (k === 'journal') { V.jtab = 'sum'; openModal('journal'); return; }
   if (k === 'jt') { V.jtab = p[1]; V.histJump = p[1] === 'log'; renderModal(); return; }
   if (k === 'ideas') { makeIdeas(); return; }
+  if (k === 'didea') { say0(); withDice(() => doorIdea(Number(p[1]))); return; }
   if (k === 'latest') { const lg = document.getElementById('log'); if (lg) lg.scrollTop = lg.scrollHeight; return; }
   if (k === 'menu') { openModal('menu'); return; }
   if (k === 'exit') { V.modal = null; save(); setScreen('title'); return; }
@@ -508,6 +513,7 @@ function loadState() {
   if (!s || typeof s !== 'object' || !Array.isArray(s.heroes)) s = freshState();
   s.settings = Object.assign(defaultSettings(), s.settings || {});
   s.fallen = s.fallen || [];
+  if (s.run && Array.isArray(s.run.log)) s.run.log.forEach((e) => { e.wait = false; e.live = false; });
   s.heroes.forEach((h) => { h.inv = h.inv || { potion: 2 }; h.gear = h.gear || []; h.legacy = h.legacy || []; h.chronicle = h.chronicle || []; h.res = h.res || resMax(h); });
   return s;
 }
@@ -579,6 +585,6 @@ async function boot() {
     else { S.settings.narrator = 'templates'; save(); }
   }
 }
-window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, setRand: (f) => { dRand.f = f; },
+window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, keywordIntent, parseIntent, setRand: (f) => { dRand.f = f; },
   api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
