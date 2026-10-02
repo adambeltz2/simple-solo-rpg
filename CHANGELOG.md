@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.2] - 2026-10-02
+
+### Fixed
+
+- Model download no longer gives up on the first network error: it keeps the screen awake, retries up to 5 times (already-downloaded files are kept), and explains what to do if it still fails.
+
 ## [1.1.1] - 2026-10-02
 
 ### Changed

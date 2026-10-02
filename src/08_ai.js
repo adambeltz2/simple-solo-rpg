@@ -35,20 +35,41 @@ const AI = {
     const sup = await this.support();
     if (!sup.ok) { this.status = 'error'; this.err = sup.why; return false; }
     this.f16 = sup.f16;
+    let lock = null;
     try {
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      /* a long download dies if the screen sleeps, so ask the browser to keep it awake */
+      try { if (navigator.wakeLock) lock = await navigator.wakeLock.request('screen'); } catch (e) { lock = null; }
       if (!this.lib) this.lib = await import(WEBLLM_URL);
       const id = this.fullId(key, sup.f16);
-      this.engine = await this.lib.CreateMLCEngine(id, {
-        initProgressCallback: (r) => { this.progress = r.progress || 0; this.msg = r.text || ''; if (cb) cb(this.progress, this.msg); },
-      });
+      const tries = 5;
+      for (let n = 1; ; n++) {
+        try {
+          this.engine = await this.lib.CreateMLCEngine(id, {
+            initProgressCallback: (r) => { this.progress = r.progress || 0; this.msg = r.text || ''; if (cb) cb(this.progress, this.msg); },
+          });
+          break;
+        } catch (e) {
+          const m = String((e && e.message) || e);
+          /* files already fetched stay in the cache, so a retry picks up where the download stopped */
+          if (n >= tries || !/cache|network|fetch|load failed|timeout|abort/i.test(m)) throw e;
+          this.msg = 'Connection hiccup. Resuming (try ' + (n + 1) + ' of ' + tries + ')…';
+          if (cb) cb(this.progress, this.msg);
+          await new Promise((r) => setTimeout(r, window.__fastRetry ? 5 : 2000 * n));
+        }
+      }
       this.modelKey = key; this.modelId = id; this.status = 'ready';
       return true;
     } catch (e) {
       this.status = 'error';
-      this.err = String((e && e.message) || e);
+      const m = String((e && e.message) || e);
+      this.err = /cache|network|fetch|load failed|timeout|abort/i.test(m)
+        ? 'The download was interrupted (network or storage). Check your connection and that you have about 1 GB free, keep this screen open, then tap Download again. It resumes where it stopped. Details: ' + m
+        : m;
       this.engine = null;
       return false;
+    } finally {
+      try { if (lock) lock.release(); } catch (e) { /* ignore */ }
     }
   },
   interrupt() { try { if (this.engine && this.engine.interruptGenerate) this.engine.interruptGenerate(); } catch (e) { /* ignore */ } },
