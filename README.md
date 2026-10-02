@@ -32,7 +32,7 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
 
 - Built-in template narration works with no network at all.
 - Optional on-device narrator (WebLLM, Qwen2.5 1.5B by default, 3B or Llama 3.2 1B
-  optional). It needs Chrome with WebGPU. The first use downloads the model
+  optional). It needs Chrome (121 or newer, Android 12 or newer) with WebGPU; Firefox does not support WebGPU, so the narrator stays off there and the built-in text is used. The first use downloads the model
   (about 0.7–2 GB) and the WebLLM library from the jsdelivr CDN; after that it runs
   offline. The model only rewrites narration and parses free-text intent; code decides
   every outcome.

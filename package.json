@@ -1,7 +1,7 @@
 {
   "name": "simple-solo-rpg",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Delve: an offline, phone-first solo 5.5e dungeon generator (single-file PWA).",
   "scripts": {
     "build": "python3 src/build.py",

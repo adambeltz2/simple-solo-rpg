@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.1] - 2026-10-02
+
+### Changed
+
+- Clearer message when the on-device AI cannot start: it now says WebGPU is missing and to open the game in Chrome 121+ on Android 12+ (Firefox does not support it).
+
 ## [1.1.0] - 2026-10-02
 
 ### Added

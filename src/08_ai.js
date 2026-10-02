@@ -10,10 +10,10 @@ const AI = {
   lib: null, engine: null, status: 'off', modelKey: null, modelId: null, progress: 0, msg: '', err: '', f16: false,
   async support() {
     if (window.__mockLLM) return { ok: true, f16: true };
-    if (!navigator.gpu) return { ok: false, why: 'This browser has no WebGPU. Try Chrome on a recent Android phone.' };
+    if (!navigator.gpu) return { ok: false, why: 'This browser has no WebGPU, which the on-device AI needs. Open the game in Chrome (version 121 or newer, on Android 12 or newer). Firefox and some other browsers do not support it. Built-in text still works.' };
     try {
       const ad = await navigator.gpu.requestAdapter();
-      if (!ad) return { ok: false, why: 'No WebGPU adapter was found on this device.' };
+      if (!ad) return { ok: false, why: 'WebGPU is on, but no usable graphics adapter was found on this device. Some phones cannot run it. Built-in text still works.' };
       return { ok: true, f16: !!(ad.features && ad.features.has('shader-f16')) };
     } catch (e) { return { ok: false, why: String((e && e.message) || e) }; }
   },
