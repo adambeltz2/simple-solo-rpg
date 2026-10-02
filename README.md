@@ -61,4 +61,4 @@ npm test         # 12 bot playthroughs
 ```
 
 Edit files in `src/`, rebuild, and commit both `src/` and the regenerated `index.html`.
-Deployment is GitHub Pages via `.github/workflows/deploy.yml` on every push to `main`.
+The version number (from `package.json`) and build date appear at the bottom of the title screen, menu and settings, which shows whether your phone has picked up the latest build. Deployment is GitHub Pages via `.github/workflows/deploy.yml` on every push to `main`.

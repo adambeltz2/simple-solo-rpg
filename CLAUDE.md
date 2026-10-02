@@ -31,6 +31,7 @@ Act as a senior software engineer and technical investigator. Optimize for corre
 *   **Dice:** hero dice go through `heroDice`/`rollDice(..., label)` (labelled = the player may enter them); enemy and world dice use `d()`/`rnd()` and are never prompted. Manual entry works by replaying the action from a snapshot (`src/04b_dice.js`), so every action handler must stay deterministic given the random tape and must not do side effects outside `S`, `say`, `narr` and `changed`.
 *   **Testing:** `node tools/test.js N seedbase [ai] [smart]` (jsdom bot playthroughs; set `DICE=d20` or `DICE=all` to test manual dice) and `node tools/sim.js N kinds` (combat balance). Both must report 0 errors / 0 bad text before shipping.
 *   **Deployment:** GitHub Pages, published by `.github/workflows/deploy.yml` on every push to `main`. It copies the static files; there is no build in CI, so a rebuilt `index.html` must be committed. Bump `CACHE` in `sw.js` when the shell file list changes.
+*   **Versioning:** the version lives in `package.json` (`version`) and is stamped into `index.html` by `src/build.py` together with the build date; it shows in the title, menu and settings footers. Bump it for each shipped change and give the CHANGELOG entry the same number.
 *   **Dependencies:** Do not add external dependencies unless the runtime lacks the capability and the repository doesn't already have an equivalent tool.
 
 ## 6. Security & State Changes

@@ -46,6 +46,8 @@ function RNG(seed) {
 }
 
 /* table dice (not seeded: every play-through rolls fresh) */
+const APP_VERSION = '__VERSION__', APP_BUILD = '__BUILD__'; // filled in by src/build.py
+const verLine = () => 'Delve v' + APP_VERSION + ' · built ' + APP_BUILD;
 const dRand = { f: Math.random };
 /* Manual-dice state (see 04b_dice.js). tape: every random draw of the action in progress, so it can be replayed. */
 const Dice = { mode: 'auto', tape: null, pos: 0, hold: false, def: null, need: null, retry: null };

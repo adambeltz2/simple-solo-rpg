@@ -61,7 +61,7 @@ function viewTitle() {
     btn('go:heroes', 'Heroes (' + S.heroes.length + ')') +
     btn('go:settings', 'Narrator &amp; settings') +
     (V.installEvt ? btn('install', 'Install app', 'ghost') : '') +
-    '<p class="small dim" style="text-align:center">' + esc(aiStatusText()) + '</p></div>';
+    '<p class="small dim" style="text-align:center">' + esc(aiStatusText()) + '</p><p class="ver">' + esc(verLine()) + '</p></div>';
 }
 function viewHeroes() {
   let h = '<div class="scr"><div class="row" style="align-items:center"><h2>Heroes</h2><div style="flex:none;width:100px">' + btn('go:title', 'Back', 'ghost') + '</div></div>';
@@ -338,7 +338,7 @@ function viewJournal() {
   return o;
 }
 function viewMenu() {
-  return topbar('Menu') + btn('sheet', 'Character sheet') + btn('journal', 'Journal') + btn('go:settings', 'Narrator &amp; settings') + btn('exit', 'Save and return to title') + btn('abandon', 'Abandon this adventure', 'danger');
+  return topbar('Menu') + btn('sheet', 'Character sheet') + btn('journal', 'Journal') + btn('go:settings', 'Narrator &amp; settings') + btn('exit', 'Save and return to title') + btn('abandon', 'Abandon this adventure', 'danger') + '<p class="ver">' + esc(verLine()) + '</p>';
 }
 function viewSettings() {
   const s = S.settings;
@@ -353,7 +353,7 @@ function viewSettings() {
   o += '<label class="f">When you fall</label><div class="chips"><button class="chip ' + (s.forgiving ? 'on' : '') + '" data-a="set:forgiving:1">Left for dead (story goes on)</button><button class="chip ' + (!s.forgiving ? 'on' : '') + '" data-a="set:forgiving:0">Death saves (can die)</button></div>';
   o += '<label class="f">Dice</label><div class="chips">' + [['auto', 'Roll for me'], ['d20', 'I roll d20s'], ['all', 'I roll everything']].map((x) => '<button class="chip ' + ((s.dice || 'auto') === x[0] ? 'on' : '') + '" data-a="set:dice:' + x[0] + '">' + x[1] + '</button>').join('') + '</div><div class="small dim">Use your own physical dice: the game asks for each roll of your hero (checks, attacks' + ', and with the last option damage and healing too). Enemy and world rolls stay automatic. Every prompt has a Roll for me button.</div>';
   o += '<label class="f">Text size</label><div class="chips">' + [[0.9, 'Small'], [1, 'Medium'], [1.15, 'Large'], [1.3, 'Huge']].map((x) => '<button class="chip ' + (s.textSize === x[0] ? 'on' : '') + '" data-a="set:text:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
-  o += '<h3 style="margin-top:14px">Data</h3><div class="small dim">Everything is stored on this device. Export a backup now and then.</div><div style="height:6px"></div>' + btn('data:export', 'Export backup (.json)', 'ghost') + '<label class="btn ghost" style="cursor:pointer">Import backup<input type="file" id="imp" accept=".json,application/json" style="display:none"></label>' + btn('data:wipe', 'Erase everything', 'danger');
+  o += '<h3 style="margin-top:14px">Data</h3><div class="small dim">Everything is stored on this device. Export a backup now and then.</div><div style="height:6px"></div>' + btn('data:export', 'Export backup (.json)', 'ghost') + '<label class="btn ghost" style="cursor:pointer">Import backup<input type="file" id="imp" accept=".json,application/json" style="display:none"></label>' + btn('data:wipe', 'Erase everything', 'danger') + '<p class="ver">' + esc(verLine()) + '</p>';
   return o;
 }
 

@@ -3,10 +3,11 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-02
 
 ### Added
 
+- Version and build date in the footer of the title screen, menu and settings, so you can tell which build is loaded.
 - "💡 Think of something else" in every room: three extra approaches beyond the fixed
   choices. With the on-device narrator ready, the AI writes them from the scene, the hero
   and the quest; otherwise a built-in pool (favouring what your hero is good at) provides
