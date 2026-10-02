@@ -3,7 +3,7 @@ let S = null;          // whole save: { settings, heroes, run, fallen }
 let run = null;        // current adventure run (S.run)
 let hero = null;       // hero in the current run
 const ui = { dirty: true, onChange: null, onNarrate: null };
-function changed() { if (ui.onChange) ui.onChange(); }
+function changed() { if (Dice.hold) { Dice.def.changed = true; return; } if (ui.onChange) ui.onChange(); }
 
 let entryId = 1;
 function say(kind, text, extra) {
@@ -14,29 +14,27 @@ function say(kind, text, extra) {
 }
 function narr(text, facts) {
   const e = say('narr', text, { tpl: text });
-  if (facts && ui.onNarrate) ui.onNarrate(e, facts);
+  if (facts && ui.onNarrate) { if (Dice.hold) Dice.def.narr.push([e, facts]); else ui.onNarrate(e, facts); }
   return e;
 }
 
 /* ---------- dice with context ---------- */
-function d20roll(mode) {
-  const one = () => {
-    let v = d(20);
-    let lucky = false;
-    if (v === 1 && hero.species === 'halfling') { v = d(20); lucky = true; }
-    return { v, lucky };
-  };
-  const a = one();
-  if (!mode) return { r: a.v, all: [a.v], lucky: a.lucky, mode: 0 };
-  const b = one();
-  const r = mode > 0 ? Math.max(a.v, b.v) : Math.min(a.v, b.v);
-  return { r, all: [a.v, b.v], lucky: a.lucky || b.lucky, mode };
+function d20roll(mode, label) {
+  const lab = label && (mode > 0 ? label + ' — advantage: roll two, the higher counts' : mode < 0 ? label + ' — disadvantage: roll two, the lower counts' : label);
+  const all = heroDice(mode ? 2 : 1, 20, lab);
+  let lucky = false;
+  if (hero.species === 'halfling') {
+    for (let i = 0; i < all.length; i++) if (all[i] === 1) { all[i] = heroDice(1, 20, label && label + ' — halfling luck: roll again for the 1')[0]; lucky = true; }
+  }
+  if (!mode) return { r: all[0], all: [all[0]], lucky, mode: 0 };
+  const r = mode > 0 ? Math.max(all[0], all[1]) : Math.min(all[0], all[1]);
+  return { r, all: [all[0], all[1]], lucky, mode };
 }
 function modeStr(m) { return m > 0 ? ' (advantage)' : m < 0 ? ' (disadvantage)' : ''; }
 
 function doCheck(skill, dc, mode) {
   const m = skillMod(hero, skill);
-  const x = d20roll(mode || 0);
+  const x = d20roll(mode || 0, SKILLS[skill].n + ' check (' + sgn(m) + ' added for you)');
   const total = x.r + m;
   const crit = x.r === 20, fumble = x.r === 1;
   const ok = crit || (!fumble && total >= dc);
@@ -44,7 +42,7 @@ function doCheck(skill, dc, mode) {
 }
 function doSave(abil, dc, mode) {
   const m = saveMod(hero, abil);
-  const x = d20roll(mode || 0);
+  const x = d20roll(mode || 0, ABIL_N[abil] + ' save (' + sgn(m) + ' added for you)');
   const total = x.r + m;
   const ok = x.r === 20 || (x.r !== 1 && total >= dc);
   return { abil, dc, m, x, total, ok };
@@ -163,7 +161,7 @@ function callbackLine() {
   const c = run.adv.clock;
   if (c.at >= c.max - 2 && c.at < c.max) parts.push('The air hums. Whatever is coming is nearly here.');
   const al = allyNow();
-  if (al && Math.random() < 0.5) parts.push(al.name + ' keeps close, ' + (al.att >= 2 ? 'steady and loyal.' : 'quiet, watching you.'));
+  if (al && rnd() < 0.5) parts.push(al.name + ' keeps close, ' + (al.att >= 2 ? 'steady and loyal.' : 'quiet, watching you.'));
   if (led().cbs.length) parts.push(led().cbs.shift());
   return parts.slice(0, 2).join(' ');
 }

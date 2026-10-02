@@ -35,7 +35,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip{border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--panel);min-height:36px}
 .chip.on{background:var(--gold);color:#241a0a;border-color:var(--gold);font-weight:600}
 label.f{display:block;margin:12px 0 4px;color:var(--dim);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em}
-input[type=text],textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#120e0b;color:var(--text);font:inherit}
+input[type=text],input[type=number],textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#120e0b;color:var(--text);font:inherit}
 textarea{min-height:90px;resize:vertical}
 .cls{display:block;width:100%;text-align:left;padding:10px 12px;margin:0 0 8px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
 .cls.on{border-color:var(--gold);background:#2d2415}
@@ -104,6 +104,9 @@ textarea{min-height:90px;resize:vertical}
 ul.tight{margin:4px 0 8px;padding-left:20px}ul.tight li{margin:2px 0}
 @media (min-width:700px){.modal{align-items:center}.sheet{border-radius:18px}}
 
+.dicehead{font-family:var(--serif,Georgia,serif);font-size:1.6rem;color:var(--gold);margin:4px 0}
+.dvrow{display:flex;gap:10px;margin:14px 0}.dvrow .dv{flex:1;min-width:0;text-align:center;font-size:1.5rem;padding:14px 8px}
+
 </style>
 </head>
 <body>
@@ -160,12 +163,33 @@ function RNG(seed) {
 
 /* table dice (not seeded: every play-through rolls fresh) */
 const dRand = { f: Math.random };
-const d = (sides) => 1 + Math.floor(dRand.f() * sides);
-const pickR = (arr) => arr[Math.floor(dRand.f() * arr.length)];
-function rollDice(n, sides, bonus = 0) {
-  const rolls = [];
-  let total = bonus;
-  for (let i = 0; i < n; i++) { const v = d(sides); rolls.push(v); total += v; }
+/* Manual-dice state (see 04b_dice.js). tape: every random draw of the action in progress, so it can be replayed. */
+const Dice = { mode: 'auto', tape: null, pos: 0, hold: false, def: null, need: null, retry: null };
+function rnd() {
+  const T = Dice.tape;
+  if (!T) return dRand.f();
+  if (Dice.pos < T.length && typeof T[Dice.pos] === 'number') return T[Dice.pos++];
+  const v = dRand.f();
+  T.push(v);
+  Dice.pos = T.length;
+  return v;
+}
+const d = (sides) => 1 + Math.floor(rnd() * sides);
+const pickR = (arr) => arr[Math.floor(rnd() * arr.length)];
+/* The hero's own dice. With a label, and manual dice switched on, the player may enter the values. */
+function heroDice(n, sides, label) {
+  const T = Dice.tape;
+  if (T && label && (Dice.mode === 'all' || (Dice.mode === 'd20' && sides === 20))) {
+    if (Dice.pos < T.length && Array.isArray(T[Dice.pos])) return T[Dice.pos++].slice();
+    throw { needRoll: { n, sides, label } };
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(d(sides));
+  return out;
+}
+function rollDice(n, sides, bonus = 0, label) {
+  const rolls = heroDice(n, sides, label && bonus ? label + ' (' + (bonus > 0 ? '+' : '−') + Math.abs(bonus) + ' added for you)' : label);
+  const total = rolls.reduce((s, v) => s + v, bonus);
   return { total, rolls, bonus };
 }
 function rollArr(a) { return rollDice(a[0], a[1], a[2] || 0); }
@@ -873,7 +897,7 @@ function needWord(m, dc) {
 function dcFor(level, diff) { return 11 + diff * 2 + Math.floor((level - 1) / 2); }
 
 /* ---------- adventure generator (the story spine) ---------- */
-function genSeed() { return pickR(SEED_W1) + '-' + pickR(SEED_W2) + '-' + (10 + Math.floor(dRand.f() * 90)); }
+function genSeed() { return pickR(SEED_W1) + '-' + pickR(SEED_W2) + '-' + (10 + Math.floor(rnd() * 90)); }
 
 function tierFor(L, rng) {
   if (L <= 1) return 1;
@@ -1071,7 +1095,7 @@ let S = null;          // whole save: { settings, heroes, run, fallen }
 let run = null;        // current adventure run (S.run)
 let hero = null;       // hero in the current run
 const ui = { dirty: true, onChange: null, onNarrate: null };
-function changed() { if (ui.onChange) ui.onChange(); }
+function changed() { if (Dice.hold) { Dice.def.changed = true; return; } if (ui.onChange) ui.onChange(); }
 
 let entryId = 1;
 function say(kind, text, extra) {
@@ -1082,29 +1106,27 @@ function say(kind, text, extra) {
 }
 function narr(text, facts) {
   const e = say('narr', text, { tpl: text });
-  if (facts && ui.onNarrate) ui.onNarrate(e, facts);
+  if (facts && ui.onNarrate) { if (Dice.hold) Dice.def.narr.push([e, facts]); else ui.onNarrate(e, facts); }
   return e;
 }
 
 /* ---------- dice with context ---------- */
-function d20roll(mode) {
-  const one = () => {
-    let v = d(20);
-    let lucky = false;
-    if (v === 1 && hero.species === 'halfling') { v = d(20); lucky = true; }
-    return { v, lucky };
-  };
-  const a = one();
-  if (!mode) return { r: a.v, all: [a.v], lucky: a.lucky, mode: 0 };
-  const b = one();
-  const r = mode > 0 ? Math.max(a.v, b.v) : Math.min(a.v, b.v);
-  return { r, all: [a.v, b.v], lucky: a.lucky || b.lucky, mode };
+function d20roll(mode, label) {
+  const lab = label && (mode > 0 ? label + ' — advantage: roll two, the higher counts' : mode < 0 ? label + ' — disadvantage: roll two, the lower counts' : label);
+  const all = heroDice(mode ? 2 : 1, 20, lab);
+  let lucky = false;
+  if (hero.species === 'halfling') {
+    for (let i = 0; i < all.length; i++) if (all[i] === 1) { all[i] = heroDice(1, 20, label && label + ' — halfling luck: roll again for the 1')[0]; lucky = true; }
+  }
+  if (!mode) return { r: all[0], all: [all[0]], lucky, mode: 0 };
+  const r = mode > 0 ? Math.max(all[0], all[1]) : Math.min(all[0], all[1]);
+  return { r, all: [all[0], all[1]], lucky, mode };
 }
 function modeStr(m) { return m > 0 ? ' (advantage)' : m < 0 ? ' (disadvantage)' : ''; }
 
 function doCheck(skill, dc, mode) {
   const m = skillMod(hero, skill);
-  const x = d20roll(mode || 0);
+  const x = d20roll(mode || 0, SKILLS[skill].n + ' check (' + sgn(m) + ' added for you)');
   const total = x.r + m;
   const crit = x.r === 20, fumble = x.r === 1;
   const ok = crit || (!fumble && total >= dc);
@@ -1112,7 +1134,7 @@ function doCheck(skill, dc, mode) {
 }
 function doSave(abil, dc, mode) {
   const m = saveMod(hero, abil);
-  const x = d20roll(mode || 0);
+  const x = d20roll(mode || 0, ABIL_N[abil] + ' save (' + sgn(m) + ' added for you)');
   const total = x.r + m;
   const ok = x.r === 20 || (x.r !== 1 && total >= dc);
   return { abil, dc, m, x, total, ok };
@@ -1231,7 +1253,7 @@ function callbackLine() {
   const c = run.adv.clock;
   if (c.at >= c.max - 2 && c.at < c.max) parts.push('The air hums. Whatever is coming is nearly here.');
   const al = allyNow();
-  if (al && Math.random() < 0.5) parts.push(al.name + ' keeps close, ' + (al.att >= 2 ? 'steady and loyal.' : 'quiet, watching you.'));
+  if (al && rnd() < 0.5) parts.push(al.name + ' keeps close, ' + (al.att >= 2 ? 'steady and loyal.' : 'quiet, watching you.'));
   if (led().cbs.length) parts.push(led().cbs.shift());
   return parts.slice(0, 2).join(' ');
 }
@@ -1426,6 +1448,72 @@ function buildBoss(room, ch, add) {
   add(C('Call out and parley', Object.assign(stat('persuasion', parleyOpen ? dcB - 1 : dcB + 3), { alt: 'insight', kind: 'check', style: 'charm', drive: 'mercy', s: { setEnd: 'parley', flags: ['parley_won'], deed: 'Talked ' + nm + ' down' }, f: { combat: { boss: true, surprise: 'enemy' }, deed: 'Parley with ' + nm + ' failed' }, ok: parleyOpen ? 'You lay out what you know. ' + nm + ' hesitates, and the weapon lowers.' : 'It is a long shot, and you have only words. They are enough.', no: nm + ' laughs once, bitterly. "Too late for words."' })));
   if (led().clues >= 2) add(C('Strike at their weak point', Object.assign(stat('arcana', dcB), { alt: 'investigation', kind: 'check', style: 'lore', drive: 'curiosity', s: { combat: { boss: true, surprise: null, weak: true }, deed: 'Exploited ' + nm + "'s weakness" }, f: { combat: { boss: true, surprise: null } }, ok: 'Everything you learned along the way converges on one mark. You know where it hurts.', no: 'You try to apply what you learned, but the pieces do not fit.' })));
   if (adv.hook === 'recover' && !flag('relic_destroyed')) add(C('Grab ' + adv.mcg + ' and run', Object.assign(stat('sleight', dcB + 1), { kind: 'check', style: 'finesse', drive: 'greed', s: { setEnd: 'snatch', flags: ['relic_taken'], deed: 'Snatched ' + adv.mcg + ' from under ' + nm + "'s nose" }, f: { combat: { boss: true, surprise: 'enemy' } }, ok: 'A distraction, a quick hand, and the prize is yours.', no: 'Your fingers close on the prize, and ' + nm + ' catches your wrist.' })));
+}
+
+/* ---------- manual dice ----------
+   Every action handler is a plain synchronous function, so a die the player must enter by hand works by replay:
+   run the action on the live state; when it reaches a hero die that has not been entered yet, abort, restore the
+   snapshot taken before the action, ask the player for the value, then run the whole action again. Every random
+   draw (and every entered value) is kept on a tape, so the second run goes exactly the same way up to that die. */
+function syncInto(dst, src) {
+  if (Array.isArray(dst)) {
+    dst.length = src.length;
+    for (let i = 0; i < src.length; i++) dst[i] = mergeVal(dst[i], src[i]);
+  } else {
+    Object.keys(dst).forEach((k) => { if (!(k in src)) delete dst[k]; });
+    Object.keys(src).forEach((k) => { dst[k] = mergeVal(dst[k], src[k]); });
+  }
+}
+function mergeVal(a, b) {
+  if (b && typeof b === 'object' && a && typeof a === 'object' && Array.isArray(a) === Array.isArray(b)) { syncInto(a, b); return a; }
+  return b;
+}
+function dicePrompt() { return S && S.settings && S.settings.dice; }
+function withDice(fn) {
+  const mode = dicePrompt();
+  if (Dice.hold || Dice.need || !mode || mode === 'auto') { fn(); return; }
+  Dice.mode = mode;
+  Dice.tape = [];
+  diceAttempt(fn, false);
+}
+function diceAttempt(fn, again) {
+  const snap = JSON.stringify(S), eid = entryId, cd = cid;
+  Dice.pos = 0;
+  Dice.hold = true;
+  Dice.def = { changed: false, narr: [] };
+  try {
+    fn();
+  } catch (e) {
+    Dice.hold = false;
+    if (e && e.needRoll) {
+      syncInto(S, JSON.parse(snap));
+      entryId = eid; cid = cd;
+      run = S.run;
+      hero = run ? S.heroes.find((x) => x.id === run.heroId) : hero;
+      Dice.need = e.needRoll;
+      Dice.retry = () => diceAttempt(fn, true);
+      if (ui.onNeedDice) ui.onNeedDice(Dice.need);
+      return;
+    }
+    diceReset();
+    throw e;
+  }
+  Dice.hold = false;
+  const def = Dice.def;
+  diceReset();
+  def.narr.forEach((p) => { if (ui.onNarrate) ui.onNarrate(p[0], p[1]); });
+  if (def.changed || again) changed();
+}
+function diceReset() {
+  Dice.tape = null; Dice.pos = 0; Dice.hold = false; Dice.def = null; Dice.need = null; Dice.retry = null; Dice.mode = 'auto';
+}
+/* the player's entered values for the die that was asked for */
+function diceSupply(values) {
+  if (!Dice.need || !Dice.retry) return;
+  const retry = Dice.retry;
+  Dice.tape.push(values);
+  Dice.need = null;
+  retry();
 }
 
 /* ---------- run lifecycle, rooms, choices ---------- */
@@ -1676,7 +1764,7 @@ function doSearch() {
   if (res.ok) {
     const g = rollDice(1, 6).total * (hero.level + 1);
     narr('Behind a fallen shelf and under a loose stone, you find what the previous owners left behind.', factsFor('search', 'You search the area and find hidden valuables.'));
-    applyFx({ gold: g, clue: dRand.f() < 0.5 ? 1 : 0, items: dRand.f() < 0.35 ? [pickR(['potion', 'oil', 'scroll', 'smoke'])] : [] });
+    applyFx({ gold: g, clue: rnd() < 0.5 ? 1 : 0, items: rnd() < 0.35 ? [pickR(['potion', 'oil', 'scroll', 'smoke'])] : [] });
   } else {
     say('sys', 'You find nothing of value.');
   }
@@ -1745,7 +1833,7 @@ function startCombat(spec, room) {
   if (spec.surprise === 'enemy') { first = 'enemy'; say('sys', 'They strike first!'); }
   else if (spec.surprise === 'player') say('sys', 'You have the drop on them. You act first, with advantage.');
   else {
-    const mine = d(20) + aMod(hero, 'dex');
+    const mine = heroDice(1, 20, 'Initiative (' + sgn(aMod(hero, 'dex')) + ' added for you)')[0] + aMod(hero, 'dex');
     const theirs = d(20) + 1 + (led().alert >= 4 ? 3 : 0);
     first = mine >= theirs ? 'player' : 'enemy';
     say('roll', 'Initiative: ' + mine + ' vs ' + theirs + ' — ' + (first === 'player' ? 'you go first' : 'they go first'), { ok: first === 'player' });
@@ -1789,7 +1877,7 @@ function strike(e, o) {
   if (pc.hidden || pc.firstAdv || (e.cond.asleep > 0)) adv = 1;
   if (pc.poisoned > 0 || pc.frightened > 0 || pc.restrained) dis = 1;
   const mode = modeOf(adv, dis);
-  const x = d20roll(mode);
+  const x = d20roll(mode, (o.name === 'Attack' ? 'Weapon' : o.name) + ' attack (' + sgn(o.bonus) + ' added for you)');
   const total = x.r + o.bonus;
   const crit = x.r === 20;
   const hit = crit || (x.r !== 1 && total >= e.ac);
@@ -1797,10 +1885,10 @@ function strike(e, o) {
   const chip = o.name + ': ' + dice + ' ' + sgn(o.bonus) + ' = ' + total + ' vs AC ' + e.ac + (crit ? ' — CRITICAL HIT' : hit ? ' — hit' : ' — miss');
   say('roll', chip, { ok: hit });
   if (!hit) { say('sys', fill(pickR(TPL.miss), { t: e.n, T: cap(e.n) })); return false; }
-  let dm = rollDice(o.dice[0] * (crit ? 2 : 1), o.dice[1], o.dice[2] || 0).total;
+  let dm = rollDice(o.dice[0] * (crit ? 2 : 1), o.dice[1], o.dice[2] || 0, (o.name === 'Attack' ? 'Weapon' : o.name) + ' damage' + (crit ? ' (critical: dice doubled)' : '')).total;
   let sneak = 0;
   if (o.sneakOk && hero.cls === 'rogue' && !pc.sneakUsed && (mode > 0 || allyNow())) {
-    sneak = rollDice(Math.ceil(hero.level / 2) * (crit ? 2 : 1), 6).total;
+    sneak = rollDice(Math.ceil(hero.level / 2) * (crit ? 2 : 1), 6, 0, 'Sneak Attack damage').total;
     pc.sneakUsed = true;
   }
   const total2 = dm + sneak;
@@ -1894,7 +1982,7 @@ function useCombatItem(id, targetId) {
   if (id === 'potion') {
     if (acted.bonus) return;
     hero.inv.potion--;
-    const r = rollDice(2, 4, 2);
+    const r = rollDice(2, 4, 2, 'Healing potion');
     const g = mend(r.total);
     acted.bonus = true;
     say('sys', 'You drink a potion: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').');
@@ -1916,7 +2004,7 @@ function useCombatItem(id, targetId) {
   if (id === 'oil') {
     strike(e, { name: 'Oil flask', bonus: aMod(hero, 'dex') + prof(hero), dice: [2, 6, 0], sneakOk: false });
   } else if (id === 'scroll') {
-    const dm = rollDice(3, 6).total;
+    const dm = rollDice(3, 6, 0, 'Scroll of fire').total;
     say('sys', 'The scroll bursts into flame: ' + dm + ' fire damage to ' + e.n + '.');
     dmgEnemy(e, dm);
   }
@@ -1941,7 +2029,7 @@ function usePower(id, targetId) {
   const sm = spellMod(hero);
   let usedAction = p.t === 'action';
   switch (id) {
-    case 'second_wind': { const r = rollDice(1, 10, L); const g = mend(r.total); say('sys', 'Second Wind: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
+    case 'second_wind': { const r = rollDice(1, 10, L, 'Second Wind healing'); const g = mend(r.total); say('sys', 'Second Wind: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
     case 'action_surge': { acted.action = false; say('sys', 'Action Surge! You take another action.'); usedAction = false; break; }
     case 'hide': {
       const dc = 12 + Math.floor(L / 2);
@@ -1953,15 +2041,14 @@ function usePower(id, targetId) {
     }
     case 'firebolt': { strike(e, { name: 'Fire Bolt', bonus: sm, dice: [L >= 5 ? 2 : 1, 10, 0], sneakOk: false }); afterAttackFlags(); break; }
     case 'magic_missile': {
-      let tot = 0;
-      for (let i = 0; i < 3; i++) tot += rollDice(1, 4, 1).total;
+      const tot = rollDice(3, 4, 3, 'Magic Missile damage (three darts)').total;
       say('sys', 'Three darts of force streak out: ' + tot + ' damage to ' + e.n + '.');
       dmgEnemy(e, tot);
       break;
     }
     case 'shield': pc.shield = true; say('sys', 'A shimmering barrier springs up: +5 AC until your next turn.'); break;
     case 'sleep': {
-      let pool = rollDice(5, 8).total;
+      let pool = rollDice(5, 8, 0, 'Sleep (hit points of foes it can affect)').total;
       const targets = livingEnemies().filter((x) => !x.fl.includes('undead')).sort((a, b) => a.hp - b.hp);
       let n = 0;
       targets.forEach((x) => { if (x.hp <= pool && !x.boss) { pool -= x.hp; x.cond.asleep = 3; n++; } });
@@ -1985,7 +2072,7 @@ function usePower(id, targetId) {
       else { const dm = rollDice(L >= 5 ? 2 : 1, 8).total; say('sys', 'Radiant fire falls on ' + e.n + ': ' + dm + ' damage.'); dmgEnemy(e, dm); }
       break;
     }
-    case 'cure_wounds': { const r = rollDice(L >= 5 ? 2 : 1, 8, aMod(hero, 'wis')); const g = mend(Math.max(1, r.total)); say('sys', 'Cure Wounds: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
+    case 'cure_wounds': { const r = rollDice(L >= 5 ? 2 : 1, 8, aMod(hero, 'wis'), 'Cure Wounds healing'); const g = mend(Math.max(1, r.total)); say('sys', 'Cure Wounds: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
     case 'guiding_bolt': { strike(e, { name: 'Guiding Bolt', bonus: sm, dice: [4, 6, 0], sneakOk: false }); afterAttackFlags(); break; }
     case 'turn_undead': {
       const dc = spellDC(hero);
@@ -1996,7 +2083,7 @@ function usePower(id, targetId) {
     }
     case 'breath': {
       const dc = 8 + prof(hero) + aMod(hero, 'con');
-      const dmg = rollDice(L >= 5 ? 3 : 2, 6).total;
+      const dmg = rollDice(L >= 5 ? 3 : 2, 6, 0, 'Breath weapon damage').total;
       say('sys', 'You exhale a cone of fire.');
       livingEnemies().forEach((x) => { const sv = d(20) + 1; const dm = sv >= dc ? Math.floor(dmg / 2) : dmg; say('sys', x.n + (sv >= dc ? ' dodges for half: ' : ' is caught: ') + dm + '.'); dmgEnemy(x, dm); });
       break;
@@ -2047,7 +2134,7 @@ function allyTurn() {
   }
   const alive = livingEnemies();
   if (!alive.length) return;
-  const t = alive[Math.floor(dRand.f() * alive.length)];
+  const t = alive[Math.floor(rnd() * alive.length)];
   const bonus = 3 + Math.floor(hero.level / 2);
   const x = rawD20(0);
   if (x.r !== 1 && (x.r === 20 || x.r + bonus >= t.ac)) {
@@ -2089,7 +2176,7 @@ function enemyPhase() {
 function enemyAttack(e) {
   const cb = run.combat, pc = cb.pc;
   const A = allyNow();
-  if (A && dRand.f() < 0.25) {
+  if (A && rnd() < 0.25) {
     const x = rawD20(0);
     if (x.r !== 1 && x.r + e.atk >= 13 + Math.floor(hero.level / 2)) {
       const dm = rollArr(e.dmg).total;
@@ -2119,17 +2206,17 @@ function enemyAttack(e) {
   hurt(dm, null);
   if (e.fl.includes('drain') && dm > 0) { const h = Math.floor(dm / 2); e.hp = Math.min(e.max, e.hp + h); say('sys', e.n + ' drinks in your vitality (+' + h + ').'); }
   if (hero.hp <= 0) return;
-  if (e.fl.includes('web') && !pc.restrained && dRand.f() < 0.5) {
+  if (e.fl.includes('web') && !pc.restrained && rnd() < 0.5) {
     const sv = doSave('dex', 12, 0);
     say('roll', rollChip(sv), { ok: sv.ok });
     if (!sv.ok) { pc.restrained = true; say('sys', 'Webbing pins you in place: attacks against you have advantage and yours have disadvantage. Use an action to break free.'); }
   }
-  if (e.fl.includes('weaken') && pc.poisoned <= 0 && dRand.f() < 0.5) {
+  if (e.fl.includes('weaken') && pc.poisoned <= 0 && rnd() < 0.5) {
     const sv = doSave('con', 11, 0);
     say('roll', rollChip(sv), { ok: sv.ok });
     if (!sv.ok) { pc.poisoned = 2; say('sys', 'You feel sick and shaky: disadvantage on attacks for 2 rounds.'); }
   }
-  if (e.fl.includes('fear') && pc.frightened <= 0 && dRand.f() < 0.5) {
+  if (e.fl.includes('fear') && pc.frightened <= 0 && rnd() < 0.5) {
     const sv = doSave('wis', 12, hero.species === 'elf' ? 1 : 0);
     say('roll', rollChip(sv), { ok: sv.ok });
     if (!sv.ok) { pc.frightened = 2; say('sys', 'Dread grips you: disadvantage on attacks for 2 rounds.'); }
@@ -2159,7 +2246,7 @@ function winCombat() {
     const g = Math.round(cb.startThr * (1 + hero.level * 0.35)) + d(6);
     hero.gold += g; led().gold += g;
     say('sys', '+' + g + ' gold from the spoils.');
-    if (dRand.f() < 0.3) { const it = pickR(['potion', 'potion', 'oil', 'smoke']); addItem(it, 1); say('sys', 'You find: ' + ITEMS[it].n + '.'); }
+    if (rnd() < 0.3) { const it = pickR(['potion', 'potion', 'oil', 'smoke']); addItem(it, 1); say('sys', 'You find: ' + ITEMS[it].n + '.'); }
     const br = mend(Math.ceil(hero.hpMax * 0.2));
     if (br) say('sys', 'You catch your breath: +' + br + ' HP.');
     narr('The last foe falls. Silence settles, and you can hear your own breathing.', factsFor('victory', 'The last of your foes falls, and silence returns.'));
@@ -2191,7 +2278,7 @@ function drinkPotion() {
   if (run.phase === 'combat') return;
   if ((hero.inv.potion || 0) < 1 || hero.hp >= hero.hpMax) return;
   hero.inv.potion--;
-  const g = mend(rollDice(2, 4, 2).total);
+  const g = mend(rollDice(2, 4, 2, 'Healing potion').total);
   say('sys', 'You drink a potion: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').');
   save();
   changed();
@@ -2200,7 +2287,7 @@ function deathSaves() {
   let s = 0, f = 0;
   const marks = [];
   while (s < 3 && f < 3) {
-    const r = d(20);
+    const r = heroDice(1, 20, 'Death saving throw')[0];
     if (r === 20) { marks.push('★'); return { out: 'revived', marks }; }
     if (r === 1) { f += 2; marks.push('✗✗'); }
     else if (r < 10) { f++; marks.push('✗'); }
@@ -2348,7 +2435,7 @@ function abandonRun() {
   changed();
 }
 function save() {
-  if (S) Store.save(S);
+  if (S && !Dice.hold) Store.save(S);
 }
 
 /* ---------- optional on-device narrator (WebLLM) ---------- */
@@ -2535,6 +2622,9 @@ async function freeAction(text) {
   const roomId = run.roomId;
   const skillKey = await parseIntent(text);
   if (!run || run.roomId !== roomId || !canFreeAct()) return;
+  withDice(() => resolveFree(text, skillKey, roomId));
+}
+function resolveFree(text, skillKey, roomId) {
   const room = run.adv.rooms[roomId];
   const L = hero.level;
   let skill = skillKey === 'attack' ? 'athletics' : skillKey;
@@ -2567,7 +2657,7 @@ async function freeAction(text) {
 
 /* ---------- UI ---------- */
 const V = { screen: 'title', modal: null, create: { species: 'human', cls: 'fighter', bg: 'soldier', drive: 'glory', name: '', story: '' }, newAdv: { heroId: null, theme: 'random', seed: '' }, els: new Map(), lastId: 0, sel: null, installEvt: null, aiLoading: false, toastT: null };
-const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1 });
+const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1, dice: 'auto' });
 const app = () => document.getElementById('app');
 
 function btn(a, label, cls, extra) { return '<button class="btn ' + (cls || '') + '" data-a="' + a + '" ' + (extra || '') + '>' + label + '</button>'; }
@@ -2819,9 +2909,21 @@ function renderModal() {
   else if (V.modal === 'journal') body = viewJournal();
   else if (V.modal === 'menu') body = viewMenu();
   else if (V.modal === 'settings') body = viewSettings();
+  else if (V.modal === 'dice') body = viewDice();
   const st = root.firstElementChild ? root.firstElementChild.scrollTop : 0;
   root.innerHTML = '<div class="sheet" data-modal="' + V.modal + '">' + body + '</div>';
   if (root.firstElementChild) root.firstElementChild.scrollTop = st;
+}
+function viewDice() {
+  const n = Dice.need;
+  if (!n) return '<p class="dim">No roll needed.</p>';
+  let o = '<div class="top"><h2 style="margin:0">Your roll</h2></div>';
+  o += '<div class="dicehead">Roll ' + n.n + 'd' + n.sides + '</div><div class="dim">' + esc(n.label) + '</div>';
+  o += '<div class="dvrow">';
+  for (let i = 0; i < n.n; i++) o += '<input class="dv" id="dv' + i + '" type="number" inputmode="numeric" min="1" max="' + n.sides + '" step="1" placeholder="' + (n.n > 1 ? 'Die ' + (i + 1) : 'd' + n.sides) + '" aria-label="d' + n.sides + ' result ' + (i + 1) + '">';
+  o += '</div>';
+  o += btn('dice:ok', 'Use my roll', 'primary') + btn('dice:auto', 'Roll for me', 'ghost');
+  return o;
 }
 function topbar(title) { return '<div class="top"><h2 style="margin:0">' + title + '</h2><button class="x" data-a="close" aria-label="Close">✕</button></div>'; }
 function viewSheet() {
@@ -2867,6 +2969,7 @@ function viewSettings() {
   o += '<div style="height:8px"></div>' + btn('ai:go', AI.status === 'ready' && AI.modelKey === s.model ? 'Narrator is ready' : 'Download &amp; enable narrator', 'primary', V.aiLoading || (AI.status === 'ready' && AI.modelKey === s.model) ? 'disabled' : '');
   o += '<h3 style="margin-top:14px">Game</h3><label class="f">Difficulty (applies to new adventures)</label><div class="chips">' + [['story', 'Story'], ['standard', 'Standard'], ['grim', 'Grim']].map((x) => '<button class="chip ' + (s.difficulty === x[0] ? 'on' : '') + '" data-a="set:difficulty:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
   o += '<label class="f">When you fall</label><div class="chips"><button class="chip ' + (s.forgiving ? 'on' : '') + '" data-a="set:forgiving:1">Left for dead (story goes on)</button><button class="chip ' + (!s.forgiving ? 'on' : '') + '" data-a="set:forgiving:0">Death saves (can die)</button></div>';
+  o += '<label class="f">Dice</label><div class="chips">' + [['auto', 'Roll for me'], ['d20', 'I roll d20s'], ['all', 'I roll everything']].map((x) => '<button class="chip ' + ((s.dice || 'auto') === x[0] ? 'on' : '') + '" data-a="set:dice:' + x[0] + '">' + x[1] + '</button>').join('') + '</div><div class="small dim">Use your own physical dice: the game asks for each roll of your hero (checks, attacks' + ', and with the last option damage and healing too). Enemy and world rolls stay automatic. Every prompt has a Roll for me button.</div>';
   o += '<label class="f">Text size</label><div class="chips">' + [[0.9, 'Small'], [1, 'Medium'], [1.15, 'Large'], [1.3, 'Huge']].map((x) => '<button class="chip ' + (s.textSize === x[0] ? 'on' : '') + '" data-a="set:text:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
   o += '<h3 style="margin-top:14px">Data</h3><div class="small dim">Everything is stored on this device. Export a backup now and then.</div><div style="height:6px"></div>' + btn('data:export', 'Export backup (.json)', 'ghost') + '<label class="btn ghost" style="cursor:pointer">Import backup<input type="file" id="imp" accept=".json,application/json" style="display:none"></label>' + btn('data:wipe', 'Erase everything', 'danger');
   return o;
@@ -2904,6 +3007,23 @@ function onAct(a, el) {
     setScreen(p[1]); return;
   }
   if (k === 'close') { closeModal(); return; }
+  if (k === 'dice') {
+    const need = Dice.need;
+    if (!need) return;
+    const vals = [];
+    for (let i = 0; i < need.n; i++) {
+      if (p[1] === 'auto') { vals.push(1 + Math.floor(dRand.f() * need.sides)); continue; }
+      const el = document.getElementById('dv' + i);
+      const v = el ? Number(el.value) : NaN;
+      if (!el || el.value.trim() === '' || !Number.isInteger(v) || v < 1 || v > need.sides) { toast('Enter a whole number from 1 to ' + need.sides + '.'); if (el) el.focus(); return; }
+      vals.push(v);
+    }
+    V.modal = V.prevModal || null;
+    V.prevModal = null;
+    renderModal();
+    diceSupply(vals);
+    return;
+  }
   if (k === 'install') { if (V.installEvt) { V.installEvt.prompt(); V.installEvt = null; render(); } return; }
   if (k === 'continue') { if (S.run) { run = S.run; hero = S.heroes.find((x) => x.id === run.heroId); V.screen = 'play'; render(); } return; }
   if (k === 'hero') {
@@ -2953,6 +3073,7 @@ function onAct(a, el) {
     } else if (p[1] === 'model') { s.model = p[2]; if (AI.status === 'ready' && AI.modelKey !== p[2]) { AI.status = 'off'; AI.engine = null; } }
     else if (p[1] === 'difficulty') s.difficulty = p[2];
     else if (p[1] === 'forgiving') s.forgiving = p[2] === '1';
+    else if (p[1] === 'dice') s.dice = p[2];
     else if (p[1] === 'text') { s.textSize = parseFloat(p[2]); document.documentElement.style.setProperty('--fs', s.textSize); }
     save();
     renderModal();
@@ -2970,21 +3091,21 @@ function onAct(a, el) {
   if (k === 'menu') { openModal('menu'); return; }
   if (k === 'exit') { V.modal = null; save(); setScreen('title'); return; }
   if (k === 'abandon') { if (confirm('Abandon this adventure? Progress in it will be lost.')) { abandonRun(); V.modal = null; setScreen('title'); } return; }
-  if (k === 'pot') { say0(); drinkPotion(); return; }
-  if (k === 'door') { say0(); chooseDoor(p[1]); return; }
-  if (k === 'pick') { say0(); pickChoice(p[1]); return; }
-  if (k === 'fort') { say0(); spendFortune(); return; }
-  if (k === 'accept') { say0(); acceptResult(); return; }
+  if (k === 'pot') { say0(); withDice(() => drinkPotion()); return; }
+  if (k === 'door') { say0(); withDice(() => chooseDoor(p[1])); return; }
+  if (k === 'pick') { say0(); withDice(() => pickChoice(p[1])); return; }
+  if (k === 'fort') { say0(); withDice(() => spendFortune()); return; }
+  if (k === 'accept') { say0(); withDice(() => acceptResult()); return; }
   if (k === 'free') { const i = document.getElementById('free'); if (i && i.value.trim()) { say0(); const t = i.value; i.value = ''; freeAction(t); } return; }
   if (k === 'finish') { leaveRun(); V.screen = 'title'; render(); return; }
   if (k === 'sel') { V.sel = p[1]; renderActs(); return; }
   if (k === 'cm') { run.combat.menu = p[1] === 'main' ? null : p[1]; renderActs(); return; }
-  if (k === 'free-web') { say0(); breakFree(); return; }
+  if (k === 'free-web') { say0(); withDice(() => breakFree()); return; }
   if (k === 'ca') {
     say0();
     const name = p.slice(1).join(':');
-    cAct(name, V.sel);
-    if (run && run.phase === 'combat') renderActs();
+    const sel = V.sel;
+    withDice(() => { cAct(name, sel); if (run && run.phase === 'combat') renderActs(); });
     return;
   }
 }
@@ -3012,6 +3133,13 @@ ui.onChange = () => {
   if (V.modal) renderModal();
 };
 ui.onNarrate = (e, f) => { Narrator.request(e, f); };
+ui.onNeedDice = () => {
+  if (V.modal !== 'dice') V.prevModal = V.modal;
+  V.modal = 'dice';
+  renderModal();
+  const first = document.getElementById('dv0');
+  if (first) setTimeout(() => { try { first.focus(); } catch (e) { /* ignore */ } }, 50);
+};
 
 function wire() {
   document.addEventListener('click', (ev) => {
@@ -3022,6 +3150,7 @@ function wire() {
   });
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && ev.target && ev.target.id === 'free') { ev.preventDefault(); onAct('free'); }
+    if (ev.key === 'Enter' && ev.target && ev.target.classList && ev.target.classList.contains('dv')) { ev.preventDefault(); onAct('dice:ok'); }
   });
   document.addEventListener('change', (ev) => {
     const t = ev.target;
@@ -3065,7 +3194,7 @@ async function boot() {
     else { S.settings.narrator = 'templates'; save(); }
   }
 }
-window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, onAct, boot, AI, Narrator, freeAction, setRand: (f) => { dRand.f = f; },
+window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, setRand: (f) => { dRand.f = f; },
   api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 

@@ -47,12 +47,33 @@ function RNG(seed) {
 
 /* table dice (not seeded: every play-through rolls fresh) */
 const dRand = { f: Math.random };
-const d = (sides) => 1 + Math.floor(dRand.f() * sides);
-const pickR = (arr) => arr[Math.floor(dRand.f() * arr.length)];
-function rollDice(n, sides, bonus = 0) {
-  const rolls = [];
-  let total = bonus;
-  for (let i = 0; i < n; i++) { const v = d(sides); rolls.push(v); total += v; }
+/* Manual-dice state (see 04b_dice.js). tape: every random draw of the action in progress, so it can be replayed. */
+const Dice = { mode: 'auto', tape: null, pos: 0, hold: false, def: null, need: null, retry: null };
+function rnd() {
+  const T = Dice.tape;
+  if (!T) return dRand.f();
+  if (Dice.pos < T.length && typeof T[Dice.pos] === 'number') return T[Dice.pos++];
+  const v = dRand.f();
+  T.push(v);
+  Dice.pos = T.length;
+  return v;
+}
+const d = (sides) => 1 + Math.floor(rnd() * sides);
+const pickR = (arr) => arr[Math.floor(rnd() * arr.length)];
+/* The hero's own dice. With a label, and manual dice switched on, the player may enter the values. */
+function heroDice(n, sides, label) {
+  const T = Dice.tape;
+  if (T && label && (Dice.mode === 'all' || (Dice.mode === 'd20' && sides === 20))) {
+    if (Dice.pos < T.length && Array.isArray(T[Dice.pos])) return T[Dice.pos++].slice();
+    throw { needRoll: { n, sides, label } };
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(d(sides));
+  return out;
+}
+function rollDice(n, sides, bonus = 0, label) {
+  const rolls = heroDice(n, sides, label && bonus ? label + ' (' + (bonus > 0 ? '+' : '−') + Math.abs(bonus) + ' added for you)' : label);
+  const total = rolls.reduce((s, v) => s + v, bonus);
   return { total, rolls, bonus };
 }
 function rollArr(a) { return rollDice(a[0], a[1], a[2] || 0); }

@@ -106,5 +106,5 @@ function abandonRun() {
   changed();
 }
 function save() {
-  if (S) Store.save(S);
+  if (S && !Dice.hold) Store.save(S);
 }

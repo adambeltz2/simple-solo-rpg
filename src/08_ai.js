@@ -182,6 +182,9 @@ async function freeAction(text) {
   const roomId = run.roomId;
   const skillKey = await parseIntent(text);
   if (!run || run.roomId !== roomId || !canFreeAct()) return;
+  withDice(() => resolveFree(text, skillKey, roomId));
+}
+function resolveFree(text, skillKey, roomId) {
   const room = run.adv.rooms[roomId];
   const L = hero.level;
   let skill = skillKey === 'attack' ? 'athletics' : skillKey;

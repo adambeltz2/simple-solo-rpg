@@ -1,5 +1,5 @@
 /* ---------- adventure generator (the story spine) ---------- */
-function genSeed() { return pickR(SEED_W1) + '-' + pickR(SEED_W2) + '-' + (10 + Math.floor(dRand.f() * 90)); }
+function genSeed() { return pickR(SEED_W1) + '-' + pickR(SEED_W2) + '-' + (10 + Math.floor(rnd() * 90)); }
 
 function tierFor(L, rng) {
   if (L <= 1) return 1;

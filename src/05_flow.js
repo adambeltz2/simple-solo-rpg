@@ -246,7 +246,7 @@ function doSearch() {
   if (res.ok) {
     const g = rollDice(1, 6).total * (hero.level + 1);
     narr('Behind a fallen shelf and under a loose stone, you find what the previous owners left behind.', factsFor('search', 'You search the area and find hidden valuables.'));
-    applyFx({ gold: g, clue: dRand.f() < 0.5 ? 1 : 0, items: dRand.f() < 0.35 ? [pickR(['potion', 'oil', 'scroll', 'smoke'])] : [] });
+    applyFx({ gold: g, clue: rnd() < 0.5 ? 1 : 0, items: rnd() < 0.35 ? [pickR(['potion', 'oil', 'scroll', 'smoke'])] : [] });
   } else {
     say('sys', 'You find nothing of value.');
   }

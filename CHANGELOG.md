@@ -3,6 +3,20 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- Manual dice: Settings → Dice offers "Roll for me" (default), "I roll d20s" and
+  "I roll everything". In the manual modes the game asks for each of your hero's rolls
+  (checks, saves, attacks, initiative, death saves and, with the last option, damage and
+  healing). Enter your physical dice or tap "Roll for me"; invalid numbers are refused.
+- `DICE=d20|all node tools/test.js ...` exercises the prompt in the bot tests.
+
+### Changed
+
+- Magic Missile now rolls 3d4+3 in one go (same odds as three 1d4+1).
+
 ## [1.0.0] - 2026-10-02
 
 ### Changed

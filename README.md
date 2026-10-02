@@ -17,6 +17,10 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
   allies and original ASCII portraits.
 - Heroes persist between adventures: milestone leveling to 5, a chronicle, and
   consequences (a spared villain can return in a later adventure).
+- Dice are yours if you want them: Settings → Dice lets the game roll for you, ask
+  you for each d20, or ask you for every die your hero rolls (damage and healing too).
+  Enter the number from your physical dice, or tap "Roll for me". Enemy and world
+  rolls always stay automatic.
 - Four classes (fighter, rogue, wizard, cleric), five species, backgrounds, and a
   "drive" that earns Fortune rerolls when you play in character. Difficulty:
   story, standard, grim. Defeat is either "Left for dead" or real death.
@@ -39,7 +43,7 @@ offline. Saves live in the browser's local storage; use Export in Settings for b
 
 - `index.html` — the built app (generated; do not hand-edit).
 - `sw.js`, `manifest.webmanifest`, `icon*` — PWA shell.
-- `src/` — the sources (`00_util.js` … `09_ui.js`, `style.css`, `template.html`) and
+- `src/` — the sources (`00_util.js` … `09_ui.js`, including `04b_dice.js` for manual dice, `style.css`, `template.html`) and
   `build.py`, which assembles them into `index.html`.
 - `tools/test.js` — jsdom bot that plays full adventures through the real UI
   (`node tools/test.js N seedbase [ai] [smart] [dump]`).

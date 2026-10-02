@@ -1,6 +1,6 @@
 /* ---------- UI ---------- */
 const V = { screen: 'title', modal: null, create: { species: 'human', cls: 'fighter', bg: 'soldier', drive: 'glory', name: '', story: '' }, newAdv: { heroId: null, theme: 'random', seed: '' }, els: new Map(), lastId: 0, sel: null, installEvt: null, aiLoading: false, toastT: null };
-const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1 });
+const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1, dice: 'auto' });
 const app = () => document.getElementById('app');
 
 function btn(a, label, cls, extra) { return '<button class="btn ' + (cls || '') + '" data-a="' + a + '" ' + (extra || '') + '>' + label + '</button>'; }
@@ -252,9 +252,21 @@ function renderModal() {
   else if (V.modal === 'journal') body = viewJournal();
   else if (V.modal === 'menu') body = viewMenu();
   else if (V.modal === 'settings') body = viewSettings();
+  else if (V.modal === 'dice') body = viewDice();
   const st = root.firstElementChild ? root.firstElementChild.scrollTop : 0;
   root.innerHTML = '<div class="sheet" data-modal="' + V.modal + '">' + body + '</div>';
   if (root.firstElementChild) root.firstElementChild.scrollTop = st;
+}
+function viewDice() {
+  const n = Dice.need;
+  if (!n) return '<p class="dim">No roll needed.</p>';
+  let o = '<div class="top"><h2 style="margin:0">Your roll</h2></div>';
+  o += '<div class="dicehead">Roll ' + n.n + 'd' + n.sides + '</div><div class="dim">' + esc(n.label) + '</div>';
+  o += '<div class="dvrow">';
+  for (let i = 0; i < n.n; i++) o += '<input class="dv" id="dv' + i + '" type="number" inputmode="numeric" min="1" max="' + n.sides + '" step="1" placeholder="' + (n.n > 1 ? 'Die ' + (i + 1) : 'd' + n.sides) + '" aria-label="d' + n.sides + ' result ' + (i + 1) + '">';
+  o += '</div>';
+  o += btn('dice:ok', 'Use my roll', 'primary') + btn('dice:auto', 'Roll for me', 'ghost');
+  return o;
 }
 function topbar(title) { return '<div class="top"><h2 style="margin:0">' + title + '</h2><button class="x" data-a="close" aria-label="Close">✕</button></div>'; }
 function viewSheet() {
@@ -300,6 +312,7 @@ function viewSettings() {
   o += '<div style="height:8px"></div>' + btn('ai:go', AI.status === 'ready' && AI.modelKey === s.model ? 'Narrator is ready' : 'Download &amp; enable narrator', 'primary', V.aiLoading || (AI.status === 'ready' && AI.modelKey === s.model) ? 'disabled' : '');
   o += '<h3 style="margin-top:14px">Game</h3><label class="f">Difficulty (applies to new adventures)</label><div class="chips">' + [['story', 'Story'], ['standard', 'Standard'], ['grim', 'Grim']].map((x) => '<button class="chip ' + (s.difficulty === x[0] ? 'on' : '') + '" data-a="set:difficulty:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
   o += '<label class="f">When you fall</label><div class="chips"><button class="chip ' + (s.forgiving ? 'on' : '') + '" data-a="set:forgiving:1">Left for dead (story goes on)</button><button class="chip ' + (!s.forgiving ? 'on' : '') + '" data-a="set:forgiving:0">Death saves (can die)</button></div>';
+  o += '<label class="f">Dice</label><div class="chips">' + [['auto', 'Roll for me'], ['d20', 'I roll d20s'], ['all', 'I roll everything']].map((x) => '<button class="chip ' + ((s.dice || 'auto') === x[0] ? 'on' : '') + '" data-a="set:dice:' + x[0] + '">' + x[1] + '</button>').join('') + '</div><div class="small dim">Use your own physical dice: the game asks for each roll of your hero (checks, attacks' + ', and with the last option damage and healing too). Enemy and world rolls stay automatic. Every prompt has a Roll for me button.</div>';
   o += '<label class="f">Text size</label><div class="chips">' + [[0.9, 'Small'], [1, 'Medium'], [1.15, 'Large'], [1.3, 'Huge']].map((x) => '<button class="chip ' + (s.textSize === x[0] ? 'on' : '') + '" data-a="set:text:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
   o += '<h3 style="margin-top:14px">Data</h3><div class="small dim">Everything is stored on this device. Export a backup now and then.</div><div style="height:6px"></div>' + btn('data:export', 'Export backup (.json)', 'ghost') + '<label class="btn ghost" style="cursor:pointer">Import backup<input type="file" id="imp" accept=".json,application/json" style="display:none"></label>' + btn('data:wipe', 'Erase everything', 'danger');
   return o;
@@ -337,6 +350,23 @@ function onAct(a, el) {
     setScreen(p[1]); return;
   }
   if (k === 'close') { closeModal(); return; }
+  if (k === 'dice') {
+    const need = Dice.need;
+    if (!need) return;
+    const vals = [];
+    for (let i = 0; i < need.n; i++) {
+      if (p[1] === 'auto') { vals.push(1 + Math.floor(dRand.f() * need.sides)); continue; }
+      const el = document.getElementById('dv' + i);
+      const v = el ? Number(el.value) : NaN;
+      if (!el || el.value.trim() === '' || !Number.isInteger(v) || v < 1 || v > need.sides) { toast('Enter a whole number from 1 to ' + need.sides + '.'); if (el) el.focus(); return; }
+      vals.push(v);
+    }
+    V.modal = V.prevModal || null;
+    V.prevModal = null;
+    renderModal();
+    diceSupply(vals);
+    return;
+  }
   if (k === 'install') { if (V.installEvt) { V.installEvt.prompt(); V.installEvt = null; render(); } return; }
   if (k === 'continue') { if (S.run) { run = S.run; hero = S.heroes.find((x) => x.id === run.heroId); V.screen = 'play'; render(); } return; }
   if (k === 'hero') {
@@ -386,6 +416,7 @@ function onAct(a, el) {
     } else if (p[1] === 'model') { s.model = p[2]; if (AI.status === 'ready' && AI.modelKey !== p[2]) { AI.status = 'off'; AI.engine = null; } }
     else if (p[1] === 'difficulty') s.difficulty = p[2];
     else if (p[1] === 'forgiving') s.forgiving = p[2] === '1';
+    else if (p[1] === 'dice') s.dice = p[2];
     else if (p[1] === 'text') { s.textSize = parseFloat(p[2]); document.documentElement.style.setProperty('--fs', s.textSize); }
     save();
     renderModal();
@@ -403,21 +434,21 @@ function onAct(a, el) {
   if (k === 'menu') { openModal('menu'); return; }
   if (k === 'exit') { V.modal = null; save(); setScreen('title'); return; }
   if (k === 'abandon') { if (confirm('Abandon this adventure? Progress in it will be lost.')) { abandonRun(); V.modal = null; setScreen('title'); } return; }
-  if (k === 'pot') { say0(); drinkPotion(); return; }
-  if (k === 'door') { say0(); chooseDoor(p[1]); return; }
-  if (k === 'pick') { say0(); pickChoice(p[1]); return; }
-  if (k === 'fort') { say0(); spendFortune(); return; }
-  if (k === 'accept') { say0(); acceptResult(); return; }
+  if (k === 'pot') { say0(); withDice(() => drinkPotion()); return; }
+  if (k === 'door') { say0(); withDice(() => chooseDoor(p[1])); return; }
+  if (k === 'pick') { say0(); withDice(() => pickChoice(p[1])); return; }
+  if (k === 'fort') { say0(); withDice(() => spendFortune()); return; }
+  if (k === 'accept') { say0(); withDice(() => acceptResult()); return; }
   if (k === 'free') { const i = document.getElementById('free'); if (i && i.value.trim()) { say0(); const t = i.value; i.value = ''; freeAction(t); } return; }
   if (k === 'finish') { leaveRun(); V.screen = 'title'; render(); return; }
   if (k === 'sel') { V.sel = p[1]; renderActs(); return; }
   if (k === 'cm') { run.combat.menu = p[1] === 'main' ? null : p[1]; renderActs(); return; }
-  if (k === 'free-web') { say0(); breakFree(); return; }
+  if (k === 'free-web') { say0(); withDice(() => breakFree()); return; }
   if (k === 'ca') {
     say0();
     const name = p.slice(1).join(':');
-    cAct(name, V.sel);
-    if (run && run.phase === 'combat') renderActs();
+    const sel = V.sel;
+    withDice(() => { cAct(name, sel); if (run && run.phase === 'combat') renderActs(); });
     return;
   }
 }
@@ -445,6 +476,13 @@ ui.onChange = () => {
   if (V.modal) renderModal();
 };
 ui.onNarrate = (e, f) => { Narrator.request(e, f); };
+ui.onNeedDice = () => {
+  if (V.modal !== 'dice') V.prevModal = V.modal;
+  V.modal = 'dice';
+  renderModal();
+  const first = document.getElementById('dv0');
+  if (first) setTimeout(() => { try { first.focus(); } catch (e) { /* ignore */ } }, 50);
+};
 
 function wire() {
   document.addEventListener('click', (ev) => {
@@ -455,6 +493,7 @@ function wire() {
   });
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && ev.target && ev.target.id === 'free') { ev.preventDefault(); onAct('free'); }
+    if (ev.key === 'Enter' && ev.target && ev.target.classList && ev.target.classList.contains('dv')) { ev.preventDefault(); onAct('dice:ok'); }
   });
   document.addEventListener('change', (ev) => {
     const t = ev.target;
@@ -498,6 +537,6 @@ async function boot() {
     else { S.settings.narrator = 'templates'; save(); }
   }
 }
-window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, onAct, boot, AI, Narrator, freeAction, setRand: (f) => { dRand.f = f; },
+window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, setRand: (f) => { dRand.f = f; },
   api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

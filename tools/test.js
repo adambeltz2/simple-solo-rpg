@@ -7,8 +7,9 @@ const SEEDBASE = parseInt(process.argv[3] || '1', 10);
 const AI_MOCK = process.argv[4] === 'ai';
 const SMART = process.argv[5] === 'smart';
 const DUMP = process.argv[6] === 'dump';
+const DICE = process.env.DICE || 'auto'; // auto | d20 | all: exercise the manual-dice prompt
 
-const stats = { runs: 0, endings: {}, errors: [], badText: [], steps: 0, stuck: 0, levels: {}, deaths: 0, byClass: {}, byTheme: {}, twists: {}, hooks: {} };
+const stats = { runs: 0, endings: {}, errors: [], badText: [], steps: 0, stuck: 0, levels: {}, deaths: 0, prompts: 0, promptKinds: {}, rejected: 0, byClass: {}, byTheme: {}, twists: {}, hooks: {} };
 
 function lcg(seed) { let s = seed >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -50,9 +51,43 @@ async function playOne(i) {
   D.V.create = { species: pick(species), cls, bg: pick(bgs), drive: pick(drives), name: 'Bot' + i, story: 'A test hero.' };
   if (rnd() < 0.5) D.S.settings.forgiving = false;
   D.S.settings.difficulty = pick(['story', 'standard', 'standard', 'grim']);
+  D.S.settings.dice = DICE;
   if (AI_MOCK) { await D.AI.load('small'); D.S.settings.narrator = 'ai'; }
   D.onAct('c:make');
   const heroRef = D.S.heroes[0];
+
+  /* answer any manual-dice prompts raised by the last click; pre = JSON of the save before that click */
+  const answerDice = async (pre) => {
+    let guard = 0;
+    while (D.Dice.need && guard++ < 60) {
+      const need = D.Dice.need;
+      stats.prompts++;
+      const kind = need.n + 'd' + need.sides;
+      stats.promptKinds[kind] = (stats.promptKinds[kind] || 0) + 1;
+      if (JSON.stringify(D.S) !== pre) errs.push('state not restored at dice prompt (' + need.label + ')');
+      if (DICE === 'd20' && need.sides !== 20) errs.push('non-d20 prompt in d20 mode: ' + need.label);
+      const modal = w.document.getElementById('modal');
+      if (!modal || !/Roll \d+d\d+/.test(modal.textContent)) errs.push('no dice modal shown');
+      if (D.Dice.hold) errs.push('hold left on during prompt');
+      const inputs = [...w.document.querySelectorAll('#modal input.dv')];
+      if (inputs.length !== need.n) errs.push('wrong number of dice inputs');
+      if (rnd() < 0.15) { /* a bad entry must be refused and keep the prompt open */
+        inputs.forEach((el) => { el.value = rnd() < 0.5 ? '0' : String(need.sides + 1); });
+        w.document.querySelector('[data-a="dice:ok"]').click();
+        if (!D.Dice.need) errs.push('invalid dice entry was accepted');
+        stats.rejected++;
+      }
+      if (rnd() < 0.3) { w.document.querySelector('[data-a="dice:auto"]').click(); }
+      else {
+        inputs.forEach((el) => { el.value = String(1 + Math.floor(rnd() * need.sides)); });
+        w.document.querySelector('[data-a="dice:ok"]').click();
+      }
+      await tick();
+    }
+    if (D.Dice.need) errs.push('dice prompt never cleared');
+    if (D.Dice.tape || D.Dice.hold) errs.push('dice tape/hold left after action');
+    if (w.document.getElementById('modal') && D.V.modal === 'dice') errs.push('dice modal left open');
+  };
   const adventures = 1 + Math.floor(rnd() * 3); // chain adventures to test levelling + legacy
   let result = null;
   for (let adv = 0; adv < adventures; adv++) {
@@ -125,8 +160,10 @@ async function playOne(i) {
       } else if (run.phase === 'room' && rnd() < 0.12 && w.document.getElementById('free')) {
         const inp = w.document.getElementById('free');
         inp.value = pick(['I search the walls for hidden levers', 'sneak past quietly', 'talk to them calmly', 'smash it with my shoulder', 'cast a spell to dispel the wards', 'dance wildly', 'attack!']);
+        const preF = JSON.stringify(D.S);
         w.document.querySelector('[data-a="free"]').click();
         await tick(); await tick(); await tick();
+        await answerDice(preF);
         continue;
       } else {
         const good = btns.filter((b) => !/^(sheet|journal|menu|pot)$/.test(b.getAttribute('data-a')) && b.getAttribute('data-a') !== 'free');
@@ -136,7 +173,9 @@ async function playOne(i) {
         const fort = by('fort');
         if (fort.length && rnd() < 0.6) target = fort[0];
       }
+      const pre = JSON.stringify(D.S);
       target.click();
+      await answerDice(pre);
     }
     if (D.S.run) { errs.push('run did not finish in 700 steps; phase ' + D.run.phase); stats.stuck++; break; }
   }
@@ -148,7 +187,7 @@ async function playOne(i) {
 
 (async () => {
   for (let i = 0; i < N; i++) await playOne(i);
-  console.log(JSON.stringify({ runs: stats.runs, steps: stats.steps, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
+  console.log(JSON.stringify({ dice: DICE, prompts: stats.prompts, promptKinds: stats.promptKinds, rejected: stats.rejected, runs: stats.runs, steps: stats.steps, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
   console.log('ERRORS', stats.errors.length);
   stats.errors.slice(0, 6).forEach((e) => console.log(JSON.stringify(e)));
   console.log('BADTEXT', stats.badText.length);

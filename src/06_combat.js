@@ -52,7 +52,7 @@ function startCombat(spec, room) {
   if (spec.surprise === 'enemy') { first = 'enemy'; say('sys', 'They strike first!'); }
   else if (spec.surprise === 'player') say('sys', 'You have the drop on them. You act first, with advantage.');
   else {
-    const mine = d(20) + aMod(hero, 'dex');
+    const mine = heroDice(1, 20, 'Initiative (' + sgn(aMod(hero, 'dex')) + ' added for you)')[0] + aMod(hero, 'dex');
     const theirs = d(20) + 1 + (led().alert >= 4 ? 3 : 0);
     first = mine >= theirs ? 'player' : 'enemy';
     say('roll', 'Initiative: ' + mine + ' vs ' + theirs + ' — ' + (first === 'player' ? 'you go first' : 'they go first'), { ok: first === 'player' });
@@ -96,7 +96,7 @@ function strike(e, o) {
   if (pc.hidden || pc.firstAdv || (e.cond.asleep > 0)) adv = 1;
   if (pc.poisoned > 0 || pc.frightened > 0 || pc.restrained) dis = 1;
   const mode = modeOf(adv, dis);
-  const x = d20roll(mode);
+  const x = d20roll(mode, (o.name === 'Attack' ? 'Weapon' : o.name) + ' attack (' + sgn(o.bonus) + ' added for you)');
   const total = x.r + o.bonus;
   const crit = x.r === 20;
   const hit = crit || (x.r !== 1 && total >= e.ac);
@@ -104,10 +104,10 @@ function strike(e, o) {
   const chip = o.name + ': ' + dice + ' ' + sgn(o.bonus) + ' = ' + total + ' vs AC ' + e.ac + (crit ? ' — CRITICAL HIT' : hit ? ' — hit' : ' — miss');
   say('roll', chip, { ok: hit });
   if (!hit) { say('sys', fill(pickR(TPL.miss), { t: e.n, T: cap(e.n) })); return false; }
-  let dm = rollDice(o.dice[0] * (crit ? 2 : 1), o.dice[1], o.dice[2] || 0).total;
+  let dm = rollDice(o.dice[0] * (crit ? 2 : 1), o.dice[1], o.dice[2] || 0, (o.name === 'Attack' ? 'Weapon' : o.name) + ' damage' + (crit ? ' (critical: dice doubled)' : '')).total;
   let sneak = 0;
   if (o.sneakOk && hero.cls === 'rogue' && !pc.sneakUsed && (mode > 0 || allyNow())) {
-    sneak = rollDice(Math.ceil(hero.level / 2) * (crit ? 2 : 1), 6).total;
+    sneak = rollDice(Math.ceil(hero.level / 2) * (crit ? 2 : 1), 6, 0, 'Sneak Attack damage').total;
     pc.sneakUsed = true;
   }
   const total2 = dm + sneak;
@@ -201,7 +201,7 @@ function useCombatItem(id, targetId) {
   if (id === 'potion') {
     if (acted.bonus) return;
     hero.inv.potion--;
-    const r = rollDice(2, 4, 2);
+    const r = rollDice(2, 4, 2, 'Healing potion');
     const g = mend(r.total);
     acted.bonus = true;
     say('sys', 'You drink a potion: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').');
@@ -223,7 +223,7 @@ function useCombatItem(id, targetId) {
   if (id === 'oil') {
     strike(e, { name: 'Oil flask', bonus: aMod(hero, 'dex') + prof(hero), dice: [2, 6, 0], sneakOk: false });
   } else if (id === 'scroll') {
-    const dm = rollDice(3, 6).total;
+    const dm = rollDice(3, 6, 0, 'Scroll of fire').total;
     say('sys', 'The scroll bursts into flame: ' + dm + ' fire damage to ' + e.n + '.');
     dmgEnemy(e, dm);
   }
@@ -248,7 +248,7 @@ function usePower(id, targetId) {
   const sm = spellMod(hero);
   let usedAction = p.t === 'action';
   switch (id) {
-    case 'second_wind': { const r = rollDice(1, 10, L); const g = mend(r.total); say('sys', 'Second Wind: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
+    case 'second_wind': { const r = rollDice(1, 10, L, 'Second Wind healing'); const g = mend(r.total); say('sys', 'Second Wind: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
     case 'action_surge': { acted.action = false; say('sys', 'Action Surge! You take another action.'); usedAction = false; break; }
     case 'hide': {
       const dc = 12 + Math.floor(L / 2);
@@ -260,15 +260,14 @@ function usePower(id, targetId) {
     }
     case 'firebolt': { strike(e, { name: 'Fire Bolt', bonus: sm, dice: [L >= 5 ? 2 : 1, 10, 0], sneakOk: false }); afterAttackFlags(); break; }
     case 'magic_missile': {
-      let tot = 0;
-      for (let i = 0; i < 3; i++) tot += rollDice(1, 4, 1).total;
+      const tot = rollDice(3, 4, 3, 'Magic Missile damage (three darts)').total;
       say('sys', 'Three darts of force streak out: ' + tot + ' damage to ' + e.n + '.');
       dmgEnemy(e, tot);
       break;
     }
     case 'shield': pc.shield = true; say('sys', 'A shimmering barrier springs up: +5 AC until your next turn.'); break;
     case 'sleep': {
-      let pool = rollDice(5, 8).total;
+      let pool = rollDice(5, 8, 0, 'Sleep (hit points of foes it can affect)').total;
       const targets = livingEnemies().filter((x) => !x.fl.includes('undead')).sort((a, b) => a.hp - b.hp);
       let n = 0;
       targets.forEach((x) => { if (x.hp <= pool && !x.boss) { pool -= x.hp; x.cond.asleep = 3; n++; } });
@@ -292,7 +291,7 @@ function usePower(id, targetId) {
       else { const dm = rollDice(L >= 5 ? 2 : 1, 8).total; say('sys', 'Radiant fire falls on ' + e.n + ': ' + dm + ' damage.'); dmgEnemy(e, dm); }
       break;
     }
-    case 'cure_wounds': { const r = rollDice(L >= 5 ? 2 : 1, 8, aMod(hero, 'wis')); const g = mend(Math.max(1, r.total)); say('sys', 'Cure Wounds: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
+    case 'cure_wounds': { const r = rollDice(L >= 5 ? 2 : 1, 8, aMod(hero, 'wis'), 'Cure Wounds healing'); const g = mend(Math.max(1, r.total)); say('sys', 'Cure Wounds: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
     case 'guiding_bolt': { strike(e, { name: 'Guiding Bolt', bonus: sm, dice: [4, 6, 0], sneakOk: false }); afterAttackFlags(); break; }
     case 'turn_undead': {
       const dc = spellDC(hero);
@@ -303,7 +302,7 @@ function usePower(id, targetId) {
     }
     case 'breath': {
       const dc = 8 + prof(hero) + aMod(hero, 'con');
-      const dmg = rollDice(L >= 5 ? 3 : 2, 6).total;
+      const dmg = rollDice(L >= 5 ? 3 : 2, 6, 0, 'Breath weapon damage').total;
       say('sys', 'You exhale a cone of fire.');
       livingEnemies().forEach((x) => { const sv = d(20) + 1; const dm = sv >= dc ? Math.floor(dmg / 2) : dmg; say('sys', x.n + (sv >= dc ? ' dodges for half: ' : ' is caught: ') + dm + '.'); dmgEnemy(x, dm); });
       break;
@@ -354,7 +353,7 @@ function allyTurn() {
   }
   const alive = livingEnemies();
   if (!alive.length) return;
-  const t = alive[Math.floor(dRand.f() * alive.length)];
+  const t = alive[Math.floor(rnd() * alive.length)];
   const bonus = 3 + Math.floor(hero.level / 2);
   const x = rawD20(0);
   if (x.r !== 1 && (x.r === 20 || x.r + bonus >= t.ac)) {
@@ -396,7 +395,7 @@ function enemyPhase() {
 function enemyAttack(e) {
   const cb = run.combat, pc = cb.pc;
   const A = allyNow();
-  if (A && dRand.f() < 0.25) {
+  if (A && rnd() < 0.25) {
     const x = rawD20(0);
     if (x.r !== 1 && x.r + e.atk >= 13 + Math.floor(hero.level / 2)) {
       const dm = rollArr(e.dmg).total;
@@ -426,17 +425,17 @@ function enemyAttack(e) {
   hurt(dm, null);
   if (e.fl.includes('drain') && dm > 0) { const h = Math.floor(dm / 2); e.hp = Math.min(e.max, e.hp + h); say('sys', e.n + ' drinks in your vitality (+' + h + ').'); }
   if (hero.hp <= 0) return;
-  if (e.fl.includes('web') && !pc.restrained && dRand.f() < 0.5) {
+  if (e.fl.includes('web') && !pc.restrained && rnd() < 0.5) {
     const sv = doSave('dex', 12, 0);
     say('roll', rollChip(sv), { ok: sv.ok });
     if (!sv.ok) { pc.restrained = true; say('sys', 'Webbing pins you in place: attacks against you have advantage and yours have disadvantage. Use an action to break free.'); }
   }
-  if (e.fl.includes('weaken') && pc.poisoned <= 0 && dRand.f() < 0.5) {
+  if (e.fl.includes('weaken') && pc.poisoned <= 0 && rnd() < 0.5) {
     const sv = doSave('con', 11, 0);
     say('roll', rollChip(sv), { ok: sv.ok });
     if (!sv.ok) { pc.poisoned = 2; say('sys', 'You feel sick and shaky: disadvantage on attacks for 2 rounds.'); }
   }
-  if (e.fl.includes('fear') && pc.frightened <= 0 && dRand.f() < 0.5) {
+  if (e.fl.includes('fear') && pc.frightened <= 0 && rnd() < 0.5) {
     const sv = doSave('wis', 12, hero.species === 'elf' ? 1 : 0);
     say('roll', rollChip(sv), { ok: sv.ok });
     if (!sv.ok) { pc.frightened = 2; say('sys', 'Dread grips you: disadvantage on attacks for 2 rounds.'); }
@@ -466,7 +465,7 @@ function winCombat() {
     const g = Math.round(cb.startThr * (1 + hero.level * 0.35)) + d(6);
     hero.gold += g; led().gold += g;
     say('sys', '+' + g + ' gold from the spoils.');
-    if (dRand.f() < 0.3) { const it = pickR(['potion', 'potion', 'oil', 'smoke']); addItem(it, 1); say('sys', 'You find: ' + ITEMS[it].n + '.'); }
+    if (rnd() < 0.3) { const it = pickR(['potion', 'potion', 'oil', 'smoke']); addItem(it, 1); say('sys', 'You find: ' + ITEMS[it].n + '.'); }
     const br = mend(Math.ceil(hero.hpMax * 0.2));
     if (br) say('sys', 'You catch your breath: +' + br + ' HP.');
     narr('The last foe falls. Silence settles, and you can hear your own breathing.', factsFor('victory', 'The last of your foes falls, and silence returns.'));
@@ -498,7 +497,7 @@ function drinkPotion() {
   if (run.phase === 'combat') return;
   if ((hero.inv.potion || 0) < 1 || hero.hp >= hero.hpMax) return;
   hero.inv.potion--;
-  const g = mend(rollDice(2, 4, 2).total);
+  const g = mend(rollDice(2, 4, 2, 'Healing potion').total);
   say('sys', 'You drink a potion: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').');
   save();
   changed();
@@ -507,7 +506,7 @@ function deathSaves() {
   let s = 0, f = 0;
   const marks = [];
   while (s < 3 && f < 3) {
-    const r = d(20);
+    const r = heroDice(1, 20, 'Death saving throw')[0];
     if (r === 20) { marks.push('★'); return { out: 'revived', marks }; }
     if (r === 1) { f += 2; marks.push('✗✗'); }
     else if (r < 10) { f++; marks.push('✗'); }

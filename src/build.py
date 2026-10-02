@@ -1,7 +1,7 @@
 """Assemble src/*.js, style.css and template.html into the single-file app (../index.html)."""
 import os
 here = os.path.dirname(os.path.abspath(__file__))
-order = ['00_util','01_data','01b_art','02_hero','03_adventure','04_play','05_flow','06_combat','07_end','08_ai','09_ui']
+order = ['00_util','01_data','01b_art','02_hero','03_adventure','04_play','04b_dice','05_flow','06_combat','07_end','08_ai','09_ui']
 js = "(function(){\n'use strict';\n" + "\n".join(open(os.path.join(here, n + '.js')).read() for n in order) + "\n})();\n"
 assert '</script' not in js.lower()
 css = open(os.path.join(here, 'style.css')).read()
