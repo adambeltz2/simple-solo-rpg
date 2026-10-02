@@ -106,6 +106,10 @@ ul.tight{margin:4px 0 8px;padding-left:20px}ul.tight li{margin:2px 0}
 
 .dicehead{font-family:var(--serif,Georgia,serif);font-size:1.6rem;color:var(--gold);margin:4px 0}
 .dvrow{display:flex;gap:10px;margin:14px 0}.dvrow .dv{flex:1;min-width:0;text-align:center;font-size:1.5rem;padding:14px 8px}
+.latestwrap{position:sticky;bottom:0;height:0;overflow:visible;pointer-events:none}
+.latest{pointer-events:auto;position:absolute;right:2px;bottom:10px;border:1px solid var(--gold);background:var(--panel2);color:var(--gold);border-radius:999px;padding:7px 14px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.6)}
+.latest[hidden]{display:none}
+.log.hist{overflow:visible;padding:4px 0 0;max-width:none;scroll-behavior:auto}
 
 </style>
 </head>
@@ -1101,7 +1105,7 @@ let entryId = 1;
 function say(kind, text, extra) {
   const e = Object.assign({ id: entryId++, k: kind, t: text }, extra || {});
   run.log.push(e);
-  if (run.log.length > 260) run.log.splice(0, run.log.length - 260);
+  if (run.log.length > 600) run.log.splice(0, run.log.length - 600);
   return e;
 }
 function narr(text, facts) {
@@ -2766,13 +2770,20 @@ function viewNew() {
 function renderPlay(full) {
   if (!run) return;
   if (full || !document.getElementById('log')) {
-    app().innerHTML = '<div class="hud" id="hud"></div><div class="log" id="log"></div><div class="acts" id="acts"><div class="in" id="actsin"></div></div>';
+    app().innerHTML = '<div class="hud" id="hud"></div><div class="log" id="log"><div class="latestwrap" id="latestwrap"><button class="latest" data-a="latest" id="latest" hidden>↓ Latest</button></div></div><div class="acts" id="acts"><div class="in" id="actsin"></div></div>';
     V.els = new Map();
     V.lastId = 0;
   }
   renderHud();
   appendLog();
   renderActs();
+  const lg = document.getElementById('log');
+  if (lg && !lg.dataset.wired) { lg.dataset.wired = '1'; lg.addEventListener('scroll', syncLatest, { passive: true }); }
+}
+function syncLatest() {
+  const lg = document.getElementById('log'), b = document.getElementById('latest');
+  if (!lg || !b) return;
+  b.hidden = lg.scrollHeight - lg.scrollTop - lg.clientHeight < 90;
 }
 function renderHud() {
   const c = run.adv.clock;
@@ -2790,27 +2801,44 @@ function mkEntry(e) {
   setEntry(el, e);
   return el;
 }
-function setEntry(el, e) {
+function entryCls(e) {
   const map = { head: 'head', narr: 'narr', sys: 'sys', roll: 'roll', dmg: 'dmg', choice: 'choice' };
   let cls = map[e.k] || 'sys';
   if (e.k === 'roll') cls += e.ok ? ' ok' : ' bad';
   if (e.k === 'narr' && e.live) cls += ' live';
-  el.className = cls;
+  return cls;
+}
+function setEntry(el, e) {
+  el.className = entryCls(e);
   el.textContent = e.t;
 }
 function appendLog() {
   const log = document.getElementById('log');
   if (!log) return;
-  let added = false;
+  const first = V.lastId === 0;
+  const wrap = document.getElementById('latestwrap');
+  let firstNew = null;
   run.log.forEach((e) => {
     if (e.id <= V.lastId) return;
     const el = mkEntry(e);
-    log.appendChild(el);
+    log.insertBefore(el, wrap);
     V.els.set(e.id, el);
     V.lastId = e.id;
-    added = true;
+    if (!firstNew) firstNew = el;
   });
-  if (added) log.scrollTop = log.scrollHeight;
+  if (!firstNew) return;
+  if (first) {
+    /* opening an adventure in progress: jump straight to the latest text */
+    log.style.scrollBehavior = 'auto';
+    log.scrollTop = log.scrollHeight;
+    log.style.scrollBehavior = '';
+  } else {
+    /* new text after a tap: if it fits, show it with the text above for context; if it is long, start reading at its beginning */
+    const top = firstNew.getBoundingClientRect().top - log.getBoundingClientRect().top + log.scrollTop;
+    const fresh = log.scrollHeight - top - 10;
+    log.scrollTop = fresh <= log.clientHeight - 24 ? log.scrollHeight : Math.max(0, top - 12);
+  }
+  syncLatest();
 }
 ui.onEntry = (e) => {
   const el = V.els.get(e.id);
@@ -2912,7 +2940,8 @@ function renderModal() {
   else if (V.modal === 'dice') body = viewDice();
   const st = root.firstElementChild ? root.firstElementChild.scrollTop : 0;
   root.innerHTML = '<div class="sheet" data-modal="' + V.modal + '">' + body + '</div>';
-  if (root.firstElementChild) root.firstElementChild.scrollTop = st;
+  if (root.firstElementChild) root.firstElementChild.scrollTop = V.histJump ? root.firstElementChild.scrollHeight : st;
+  V.histJump = false;
 }
 function viewDice() {
   const n = Dice.need;
@@ -2944,10 +2973,19 @@ function viewSheet() {
   return o;
 }
 function attWord(a) { return a >= 2 ? 'devoted' : a === 1 ? 'friendly' : a === 0 ? 'neutral' : a === -1 ? 'wary' : 'hostile'; }
+function journalTabs() {
+  const t = V.jtab || 'sum';
+  return '<div class="chips"><button class="chip ' + (t === 'sum' ? 'on' : '') + '" data-a="jt:sum">Summary</button><button class="chip ' + (t === 'log' ? 'on' : '') + '" data-a="jt:log">Full story so far</button></div>';
+}
+function viewHistory() {
+  const parts = run.log.map((e) => '<div class="' + entryCls(e).replace(' live', '') + '">' + esc(e.t) + '</div>');
+  return '<div class="log hist">' + parts.join('') + '</div>';
+}
 function viewJournal() {
   if (!run) return topbar('Journal') + '<p class="dim">No adventure in progress.</p>';
   const adv = run.adv, c = adv.clock;
-  let o = topbar(esc(adv.titleFull));
+  if (V.jtab === 'log') return topbar(esc(adv.titleFull)) + journalTabs() + viewHistory();
+  let o = topbar(esc(adv.titleFull)) + journalTabs();
   o += '<div class="card small">' + esc(adv.pitch) + '</div>';
   o += '<dl class="kv"><dt>Task</dt><dd>' + esc(adv.goal) + '</dd><dt>Clock</dt><dd>' + esc(c.label) + ': ' + c.at + ' / ' + c.max + '</dd><dt>Alert</dt><dd>' + led().alert + ' / 5</dd><dt>Clues</dt><dd>' + led().clues + '</dd><dt>Seed</dt><dd>' + esc(adv.seed) + '</dd></dl>';
   const met = Object.keys(adv.npcs).map((k) => adv.npcs[k]).filter((n) => n.met);
@@ -3087,7 +3125,9 @@ function onAct(a, el) {
   if (!run) return;
   /* play */
   if (k === 'sheet') { openModal('sheet'); return; }
-  if (k === 'journal') { openModal('journal'); return; }
+  if (k === 'journal') { V.jtab = 'sum'; openModal('journal'); return; }
+  if (k === 'jt') { V.jtab = p[1]; V.histJump = p[1] === 'log'; renderModal(); return; }
+  if (k === 'latest') { const lg = document.getElementById('log'); if (lg) lg.scrollTop = lg.scrollHeight; return; }
   if (k === 'menu') { openModal('menu'); return; }
   if (k === 'exit') { V.modal = null; save(); setScreen('title'); return; }
   if (k === 'abandon') { if (confirm('Abandon this adventure? Progress in it will be lost.')) { abandonRun(); V.modal = null; setScreen('title'); } return; }

@@ -17,6 +17,8 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
   allies and original ASCII portraits.
 - Heroes persist between adventures: milestone leveling to 5, a chronicle, and
   consequences (a spared villain can return in a later adventure).
+- Read back at any time: scroll up in the story (a "↓ Latest" button returns you), or
+  open the Journal's "Full story so far" tab.
 - Dice are yours if you want them: Settings → Dice lets the game roll for you, ask
   you for each d20, or ask you for every die your hero rolls (damage and healing too).
   Enter the number from your physical dice, or tap "Roll for me". Enemy and world

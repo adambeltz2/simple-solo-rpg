@@ -9,7 +9,7 @@ let entryId = 1;
 function say(kind, text, extra) {
   const e = Object.assign({ id: entryId++, k: kind, t: text }, extra || {});
   run.log.push(e);
-  if (run.log.length > 260) run.log.splice(0, run.log.length - 260);
+  if (run.log.length > 600) run.log.splice(0, run.log.length - 600);
   return e;
 }
 function narr(text, facts) {

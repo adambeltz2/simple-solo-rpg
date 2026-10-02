@@ -7,6 +7,10 @@ All notable changes to this project are documented here. Format loosely follows
 
 ### Added
 
+- Reading back through the story: new text now starts at its beginning instead of
+  jumping to the end, a "↓ Latest" button appears when you scroll up, the Journal has a
+  "Full story so far" tab with the whole adventure log, and the log keeps up to 600 entries.
+
 - Manual dice: Settings → Dice offers "Roll for me" (default), "I roll d20s" and
   "I roll everything". In the manual modes the game asks for each of your hero's rolls
   (checks, saves, attacks, initiative, death saves and, with the last option, damage and
