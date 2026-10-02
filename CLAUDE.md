@@ -25,13 +25,12 @@ Act as a senior software engineer and technical investigator. Optimize for corre
 *   **CHANGELOG.md Entries:** Every user-facing change (new feature, behavior change, bug fix, data update) gets a new entry — either a new dated release section or an addition under `[Unreleased]` — in `CHANGELOG.md`, following Keep-a-Changelog-style format.
 
 ## 5. Technology Stack & Environment Rules
-*   **Primary Ecosystem:** React 19 + TypeScript, built with Vite. Node.js/npm for tooling only (no Node runtime in production).
-*   **Architecture:** Frontend-only, static single-page app — no backend, no database, no API server. All state lives in the browser via `localStorage` (Zustand `persist` middleware in `src/store/useCharacterStore.ts`).
-*   **Routing:** React Router, using `HashRouter` specifically (required for GitHub Pages' static hosting, which has no server-side rewrite rules).
-*   **Content data:** SRD rules content is bundled as static JSON in `src/data/srd/*.json`, generated from `5e-bits/5e-database` via `scripts/extract-srd.cjs` — see that script and `README.md` to regenerate it. Never hand-edit the generated JSON.
-*   **Deployment:** GitHub Pages, built and published automatically by `.github/workflows/deploy.yml` on every push to `main`.
-*   **Linting:** `oxlint` (`npm run lint`).
-*   **Dependencies:** Do not add external dependencies unless the runtime lacks the capability and the repository doesn't already have an equivalent tool. 
+*   **Primary Ecosystem:** Vanilla JavaScript, shipped as one self-contained `index.html` PWA (inline CSS and JS). No framework and no runtime dependencies; Node and Python are for tooling only.
+*   **Source of truth:** Edit `src/*.js`, `src/style.css` and `src/template.html`, then run `python3 src/build.py` to regenerate `index.html`. Never hand-edit `index.html`; commit it together with the `src/` change.
+*   **Architecture:** Frontend-only, offline-first. All state lives in `localStorage` (key `delve.save.v1`) with JSON export. Code decides all outcomes; the optional on-device WebLLM narrator only rewrites text and parses free-text intent, and template narration must always work without it.
+*   **Testing:** `node tools/test.js N seedbase [ai] [smart]` (jsdom bot playthroughs) and `node tools/sim.js N kinds` (combat balance). Both must report 0 errors / 0 bad text before shipping.
+*   **Deployment:** GitHub Pages, published by `.github/workflows/deploy.yml` on every push to `main`. It copies the static files; there is no build in CI, so a rebuilt `index.html` must be committed. Bump `CACHE` in `sw.js` when the shell file list changes.
+*   **Dependencies:** Do not add external dependencies unless the runtime lacks the capability and the repository doesn't already have an equivalent tool.
 
 ## 6. Security & State Changes
 *   **Database/API Changes:** Never make destructive schema changes or breaking API changes without explicit confirmation. Check migrations, callers, and compatibility first.

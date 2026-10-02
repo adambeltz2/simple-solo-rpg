@@ -1,27 +1,13 @@
 {
   "name": "simple-solo-rpg",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "description": "Delve: an offline, phone-first solo 5.5e dungeon generator (single-file PWA).",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.2",
-    "zustand": "^5.0.15"
+    "build": "python3 src/build.py",
+    "test": "node tools/test.js 12 1 x smart",
+    "sim": "node tools/sim.js 60 elite,boss"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.1.0",
-    "oxlint": "^1.79.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "jsdom": "^29.1.1"
   }
 }

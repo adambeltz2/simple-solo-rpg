@@ -1,13 +1,3076 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lone Wanderer — Solo D&amp;D Toolkit</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#15110e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Delve</title>
+<style>
+:root{--bg:#15110e;--panel:#1f1914;--panel2:#2a2219;--line:#3b3025;--text:#ece1cf;--dim:#a99a88;--gold:#e0b050;--red:#d4604f;--green:#7bbd6e;--blue:#74a8de;--fs:1;--safe:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:calc(16px*var(--fs))/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+#app{display:flex;flex-direction:column;flex:1;min-height:0}
+h1,h2,h3{font-family:Georgia,'Iowan Old Style',serif;margin:0 0 .4em;color:var(--gold);font-weight:600}
+button{font:inherit;color:inherit;cursor:pointer}
+.scr{flex:1;overflow:auto;padding:16px 16px calc(24px + var(--safe));max-width:640px;width:100%;margin:0 auto}
+.logo{font-family:Georgia,serif;font-size:3.2rem;letter-spacing:.2em;color:var(--gold);text-align:center;margin:30px 0 0;text-shadow:0 2px 0 #000}
+.tag{text-align:center;color:var(--dim);margin:0 0 28px}
+.btn{display:block;width:100%;min-height:50px;padding:12px 16px;margin:0 0 10px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);text-align:center}
+.btn:active{filter:brightness(1.25)}
+.btn.primary{background:var(--gold);color:#241a0a;border-color:var(--gold);font-weight:700}
+.btn.ghost{background:transparent}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 10px}
+.card h3{margin:0 0 4px;font-size:1.05rem}
+.dim{color:var(--dim)}.small{font-size:.85rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--panel);min-height:36px}
+.chip.on{background:var(--gold);color:#241a0a;border-color:var(--gold);font-weight:600}
+label.f{display:block;margin:12px 0 4px;color:var(--dim);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em}
+input[type=text],textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#120e0b;color:var(--text);font:inherit}
+textarea{min-height:90px;resize:vertical}
+.cls{display:block;width:100%;text-align:left;padding:10px 12px;margin:0 0 8px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.cls.on{border-color:var(--gold);background:#2d2415}
+.cls b{color:var(--gold)}
+
+/* play */
+.hud{background:var(--panel);border-bottom:1px solid var(--line);padding:8px 12px calc(6px);flex:none}
+.hud .l1{display:flex;align-items:center;gap:8px}
+.hud .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;font-family:Georgia,serif}
+.hud .ib{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:6px 11px;min-height:38px;min-width:42px}
+.bar{position:relative;height:16px;background:#120e0b;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#9a3a2f,var(--red));transition:width .25s}
+.bar span{position:absolute;inset:0;text-align:center;font-size:.72rem;line-height:15px;color:#fff;text-shadow:0 1px 1px #000}
+.stats{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.85rem;color:var(--dim)}
+.stats b{color:var(--text);font-weight:600}
+.pips{letter-spacing:2px}.pips .on{color:var(--gold)}.pips .al{color:var(--red)}
+.log{flex:1;min-height:0;overflow:auto;padding:14px 14px 10px;max-width:640px;width:100%;margin:0 auto;scroll-behavior:smooth}
+.log .head{font-family:Georgia,serif;color:var(--gold);margin:18px 0 6px;font-size:1.05rem;border-bottom:1px solid var(--line);padding-bottom:4px}
+.log .narr{font-family:Georgia,'Iowan Old Style',serif;font-size:1.04em;margin:8px 0;line-height:1.55}
+.log .narr.live::after{content:'\258D';color:var(--gold);animation:bl 1s steps(2) infinite}
+.log .narr .ai{font-size:.7em;color:var(--blue);vertical-align:super;margin-left:4px}
+@keyframes bl{50%{opacity:0}}
+.log .sys{color:var(--dim);font-size:.92em;margin:3px 0}
+.log .roll{font:calc(.8em) ui-monospace,Menlo,Consolas,monospace;margin:4px 0;padding:5px 9px;border-radius:8px;background:#120e0b;border-left:3px solid var(--dim)}
+.log .roll.ok{border-color:var(--green)}.log .roll.bad{border-color:var(--red)}
+.log .dmg{color:var(--red);margin:3px 0}
+.log .choice{margin:12px 0 4px;text-align:right;color:var(--blue);font-style:italic}
+.acts{flex:none;max-height:56vh;overflow:auto;border-top:1px solid var(--line);background:var(--panel);padding:10px 12px calc(10px + var(--safe))}
+.acts .in{max-width:640px;margin:0 auto}
+.opt{display:block;width:100%;text-align:left;padding:11px 14px;margin:0 0 8px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);min-height:50px}
+.opt:active{filter:brightness(1.25)}
+.opt small{display:block;color:var(--dim);margin-top:2px;font-size:.8rem}
+.opt.hot{border-color:#6a5427}
+.opt.cont{background:var(--gold);color:#241a0a;border-color:var(--gold);font-weight:700;text-align:center}
+.free{display:flex;gap:8px;margin:2px 0 8px}.free input{flex:1}.free button{flex:none;width:76px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.mini{display:flex;gap:8px;margin-top:4px}.mini button{flex:1;padding:9px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--dim);font-size:.85rem}
+.door b{display:block;color:var(--gold);font-family:Georgia,serif}
+.door .k{display:inline-block;margin-top:4px;padding:1px 8px;border-radius:999px;background:#2d2415;color:var(--gold);font-size:.75rem}
+.fort{background:#2d2415;border:1px solid #6a5427;border-radius:12px;padding:10px 12px;margin:0 0 8px}
+
+/* combat */
+.art{font:13px/1.1 ui-monospace,Menlo,Consolas,monospace;color:var(--gold);white-space:pre;margin:0;text-align:left;min-width:150px}
+.foebox{display:flex;gap:12px;align-items:center;justify-content:center;padding:6px 0 8px}
+.foes{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.foe{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:6px 10px;min-height:44px}
+.foe.sel{border-color:var(--gold)}
+.foe .fb{height:7px;border-radius:4px;background:#120e0b;margin-top:4px;overflow:hidden}.foe .fb i{display:block;height:100%;background:var(--red)}
+.foe .cd{font-size:.72rem;color:var(--blue)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid .opt{margin:0;text-align:center;min-height:48px}
+.cond{font-size:.8rem;color:var(--blue);margin:2px 0 6px}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;max-width:640px;max-height:92dvh;overflow:auto;padding:16px 16px calc(20px + var(--safe))}
+.sheet .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.x{border:1px solid var(--line);background:var(--panel2);border-radius:10px;width:42px;height:42px;font-size:1.1rem}
+.abil{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:6px 0 12px}
+.abil div{background:var(--panel2);border:1px solid var(--line);border-radius:10px;text-align:center;padding:6px 0;font-size:.75rem;color:var(--dim)}
+.abil b{display:block;font-size:1.1rem;color:var(--text)}
+.sk{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #2a2219;font-size:.9rem}
+.sk.pf b{color:var(--gold)}
+.prog{height:10px;border-radius:5px;background:#120e0b;overflow:hidden;margin:8px 0}.prog i{display:block;height:100%;background:var(--gold);width:0}
+.toast{position:fixed;left:50%;bottom:calc(90px + var(--safe));transform:translateX(-50%);background:#000c;color:#fff;border:1px solid var(--line);padding:8px 14px;border-radius:999px;z-index:30;font-size:.9rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:.92rem}.kv dt{color:var(--dim)}.kv dd{margin:0}
+ul.tight{margin:4px 0 8px;padding-left:20px}ul.tight li{margin:2px 0}
+@media (min-width:700px){.modal{align-items:center}.sheet{border-radius:18px}}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+'use strict';
+/* ---------- util ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+const mod = (score) => Math.floor((score - 10) / 2);
+const sgn = (n) => (n >= 0 ? '+' : '−') + Math.abs(n);
+const an = (w) => (/^[aeiou]/i.test(w) ? 'an ' : 'a ') + w;
+
+function hashStr(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/* seeded RNG for dungeon generation (replayable from a seed) */
+function RNG(seed) {
+  const f = mulberry32(typeof seed === 'number' ? seed : hashStr(String(seed)));
+  const r = {
+    f,
+    int: (a, b) => a + Math.floor(f() * (b - a + 1)),
+    pick: (arr) => arr[Math.floor(f() * arr.length)],
+    chance: (p) => f() < p,
+    shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(f() * (i + 1));
+        const t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    },
+    pickN(arr, n) { return r.shuffle(arr).slice(0, n); },
+  };
+  return r;
+}
+
+/* table dice (not seeded: every play-through rolls fresh) */
+const dRand = { f: Math.random };
+const d = (sides) => 1 + Math.floor(dRand.f() * sides);
+const pickR = (arr) => arr[Math.floor(dRand.f() * arr.length)];
+function rollDice(n, sides, bonus = 0) {
+  const rolls = [];
+  let total = bonus;
+  for (let i = 0; i < n; i++) { const v = d(sides); rolls.push(v); total += v; }
+  return { total, rolls, bonus };
+}
+function rollArr(a) { return rollDice(a[0], a[1], a[2] || 0); }
+const diceStr = (a) => a[0] + 'd' + a[1] + (a[2] ? (a[2] > 0 ? '+' : '−') + Math.abs(a[2]) : '');
+const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (m, k) => (v[k] !== undefined ? v[k] : m));
+
+/* persistence */
+const Store = {
+  key: 'delve.save.v1',
+  mem: null,
+  load() {
+    try {
+      const s = localStorage.getItem(this.key);
+      return s ? JSON.parse(s) : this.mem ? JSON.parse(this.mem) : null;
+    } catch (e) {
+      return this.mem ? JSON.parse(this.mem) : null;
+    }
+  },
+  save(obj) {
+    const s = JSON.stringify(obj);
+    this.mem = s;
+    try { localStorage.setItem(this.key, s); } catch (e) { /* storage full or blocked: memory copy only */ }
+  },
+  wipe() {
+    this.mem = null;
+    try { localStorage.removeItem(this.key); } catch (e) { /* ignore */ }
+  },
+};
+
+/* ---------- game data ---------- */
+const SKILLS = {
+  athletics: { n: 'Athletics', a: 'str' }, acrobatics: { n: 'Acrobatics', a: 'dex' }, stealth: { n: 'Stealth', a: 'dex' },
+  sleight: { n: 'Sleight of Hand', a: 'dex' }, arcana: { n: 'Arcana', a: 'int' }, history: { n: 'History', a: 'int' },
+  investigation: { n: 'Investigation', a: 'int' }, nature: { n: 'Nature', a: 'int' }, religion: { n: 'Religion', a: 'int' },
+  insight: { n: 'Insight', a: 'wis' }, medicine: { n: 'Medicine', a: 'wis' }, perception: { n: 'Perception', a: 'wis' },
+  survival: { n: 'Survival', a: 'wis' }, deception: { n: 'Deception', a: 'cha' }, intimidation: { n: 'Intimidation', a: 'cha' },
+  persuasion: { n: 'Persuasion', a: 'cha' },
+};
+const ABIL_N = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
+const ABIL_ORDER = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+const SPECIES = {
+  human: { n: 'Human', perk: 'Resourceful: one extra Fortune point each adventure.' },
+  elf: { n: 'Elf', perk: 'Keen senses: proficient in Perception, and advantage on saves against fear.' },
+  dwarf: { n: 'Dwarf', perk: 'Stout: +1 HP per level, and poison damage is halved.' },
+  halfling: { n: 'Halfling', perk: 'Lucky: reroll any natural 1 on a d20.' },
+  dragonborn: { n: 'Dragonborn', perk: 'Breath weapon: once per rest, blast every foe (DEX save).' },
+};
+const BACKGROUNDS = {
+  soldier: { n: 'Soldier', skills: ['athletics', 'intimidation'], d: 'Drilled in the line, hard to rattle.' },
+  criminal: { n: 'Criminal', skills: ['stealth', 'deception'], d: 'You know locks, shadows, and lies.' },
+  sage: { n: 'Sage', skills: ['history', 'investigation'], d: 'Years in dusty archives.' },
+  acolyte: { n: 'Acolyte', skills: ['insight', 'religion'], d: 'Raised in a temple, steady of faith.' },
+  outlander: { n: 'Outlander', skills: ['survival', 'nature'], d: 'The wild raised you.' },
+  charlatan: { n: 'Charlatan', skills: ['persuasion', 'sleight'], d: 'A silver tongue and quick hands.' },
+};
+const DRIVES = {
+  glory: { n: 'Glory', d: 'You want your name sung. Bold, daring choices feed you.' },
+  greed: { n: 'Greed', d: 'Gold opens every door. Bargains and plunder tempt you.' },
+  mercy: { n: 'Mercy', d: 'You cannot pass someone in need. Sparing and helping feed you.' },
+  curiosity: { n: 'Curiosity', d: 'You must know why. Secrets and strange things pull at you.' },
+  vengeance: { n: 'Vengeance', d: 'Someone will pay. Hard confrontation feeds you.' },
+};
+const CLASSES = {
+  fighter: {
+    n: 'Fighter', hd: 10, main: 'str', wpn: { n: 'longsword', die: 8, abil: 'str' },
+    ac: () => 16, saves: ['str', 'con'], skills: ['athletics', 'perception', 'survival'],
+    stats: { str: 15, dex: 12, con: 14, int: 8, wis: 13, cha: 10 },
+    blurb: 'Armored and relentless. Second Wind, Action Surge, and Extra Attack at level 5.',
+  },
+  rogue: {
+    n: 'Rogue', hd: 8, main: 'dex', wpn: { n: 'rapier', die: 8, abil: 'dex' },
+    ac: (h) => 12 + mod(h.abil.dex), saves: ['dex', 'int'], skills: ['stealth', 'sleight', 'investigation', 'deception'],
+    stats: { str: 8, dex: 15, con: 13, int: 12, wis: 10, cha: 14 },
+    blurb: 'Quick and cunning. Sneak Attack, Cunning Hide, and Uncanny Dodge at level 5.',
+  },
+  wizard: {
+    n: 'Wizard', hd: 6, main: 'int', wpn: { n: 'quarterstaff', die: 6, abil: 'str' },
+    ac: (h) => 10 + mod(h.abil.dex), saves: ['int', 'wis'], skills: ['arcana', 'investigation', 'history'],
+    stats: { str: 8, dex: 14, con: 13, int: 15, wis: 12, cha: 10 },
+    blurb: 'Fragile, brilliant. Fire Bolt, Magic Missile, Shield, Sleep, and Scorching Ray at level 3.',
+  },
+  cleric: {
+    n: 'Cleric', hd: 8, main: 'wis', wpn: { n: 'mace', die: 6, abil: 'str' },
+    ac: () => 16, saves: ['wis', 'cha'], skills: ['medicine', 'religion', 'insight'],
+    stats: { str: 13, dex: 10, con: 14, int: 8, wis: 15, cha: 12 },
+    blurb: 'Armored and holy. Sacred Flame, Cure Wounds, Guiding Bolt, and Turn Undead at level 2.',
+  },
+};
+const ITEMS = {
+  potion: { n: 'Potion of Healing', d: 'Heals 2d4+2.' },
+  oil: { n: 'Flask of Oil', d: 'Thrown: 2d6 fire to one foe.' },
+  smoke: { n: 'Smoke Bomb', d: 'Escape a fight, or vanish into the haze.' },
+  scroll: { n: 'Scroll of Flame', d: 'A 3d6 fire blast at one foe.' },
+};
+const GEAR = [
+  { id: 'blade', n: 'Whetted Blade', d: '+1 to attack rolls', atk: 1 },
+  { id: 'ward', n: 'Warding Charm', d: '+1 AC', ac: 1 },
+  { id: 'vest', n: 'Padded Vest', d: '+4 max HP', hp: 4 },
+  { id: 'coin', n: 'Lucky Coin', d: '+1 max Fortune', fort: 1 },
+  { id: 'eyes', n: 'Ring of Keen Eyes', d: '+2 Perception', skill: { perception: 2 } },
+  { id: 'cloak', n: 'Shadow Cloak', d: '+2 Stealth', skill: { stealth: 2 } },
+  { id: 'sigil', n: "Scholar's Sigil", d: '+2 Arcana & Investigation', skill: { arcana: 2, investigation: 2 } },
+  { id: 'tongue', n: 'Silver Tongue Pin', d: '+2 Persuasion & Deception', skill: { persuasion: 2, deception: 2 } },
+  { id: 'grip', n: 'Gauntlets of Grip', d: '+2 Athletics', skill: { athletics: 2 } },
+];
+
+/* ---------- monsters ---------- */
+const MON = {
+  goblin: { n: 'Goblin', ac: 13, hp: 7, atk: 4, dmg: [1, 6, 1], thr: 2, tier: 1, fl: ['pack'], kind: 'humanoid' },
+  goblin_archer: { n: 'Goblin Archer', ac: 13, hp: 7, atk: 4, dmg: [1, 6, 1], thr: 2, tier: 1, fl: ['ranged'], kind: 'humanoid' },
+  kobold: { n: 'Kobold', ac: 12, hp: 5, atk: 4, dmg: [1, 4, 2], thr: 1, tier: 1, fl: ['pack'], kind: 'humanoid' },
+  giant_rat: { n: 'Giant Rat', ac: 12, hp: 7, atk: 4, dmg: [1, 4, 2], thr: 1, tier: 1, fl: ['pack'], kind: 'beast' },
+  skeleton: { n: 'Skeleton', ac: 13, hp: 13, atk: 4, dmg: [1, 6, 2], thr: 3, tier: 1, fl: ['undead'], kind: 'undead' },
+  zombie: { n: 'Zombie', ac: 8, hp: 22, atk: 3, dmg: [1, 6, 2], thr: 3, tier: 1, fl: ['undead'], kind: 'undead' },
+  bandit: { n: 'Bandit', ac: 12, hp: 11, atk: 3, dmg: [1, 6, 1], thr: 2, tier: 1, fl: [], kind: 'humanoid' },
+  cultist: { n: 'Cultist', ac: 12, hp: 9, atk: 3, dmg: [1, 6, 1], thr: 2, tier: 1, fl: [], kind: 'humanoid' },
+  wolf: { n: 'Wolf', pl: 'Wolves', ac: 13, hp: 11, atk: 4, dmg: [2, 4, 1], thr: 3, tier: 1, fl: ['pack'], kind: 'beast' },
+  stirge: { n: 'Stirge', ac: 14, hp: 5, atk: 5, dmg: [1, 4, 3], thr: 2, tier: 1, fl: ['drain'], kind: 'beast' },
+  hobgoblin: { n: 'Hobgoblin', ac: 16, hp: 13, atk: 3, dmg: [1, 8, 1], thr: 3, tier: 2, fl: ['pack'], kind: 'humanoid' },
+  bugbear: { n: 'Bugbear', ac: 16, hp: 27, atk: 4, dmg: [2, 6, 2], thr: 5, tier: 2, fl: [], kind: 'humanoid' },
+  ghoul: { n: 'Ghoul', ac: 12, hp: 22, atk: 4, dmg: [2, 4, 2], thr: 5, tier: 2, fl: ['undead', 'weaken'], kind: 'undead' },
+  shadow: { n: 'Shadow', ac: 12, hp: 16, atk: 4, dmg: [2, 6, 0], thr: 4, tier: 2, fl: ['undead', 'drain'], kind: 'undead' },
+  giant_spider: { n: 'Giant Spider', ac: 14, hp: 26, atk: 5, dmg: [1, 8, 3], thr: 5, tier: 2, fl: ['web', 'weaken'], kind: 'beast' },
+  cult_fanatic: { n: 'Cult Fanatic', ac: 13, hp: 33, atk: 4, dmg: [1, 8, 2], multi: 2, thr: 6, tier: 2, fl: ['fear'], kind: 'humanoid' },
+  worg: { n: 'Worg', ac: 13, hp: 26, atk: 5, dmg: [2, 6, 2], thr: 5, tier: 2, fl: ['pack'], kind: 'beast' },
+  animated_armor: { n: 'Animated Armor', ac: 18, hp: 33, atk: 4, dmg: [1, 8, 2], multi: 2, thr: 6, tier: 2, fl: [], kind: 'construct' },
+  ogre: { n: 'Ogre', ac: 11, hp: 59, atk: 6, dmg: [2, 8, 4], thr: 8, tier: 3, fl: [], kind: 'giant' },
+  wight: { n: 'Wight', ac: 14, hp: 45, atk: 4, dmg: [1, 8, 2], multi: 2, thr: 8, tier: 3, fl: ['undead', 'drain'], kind: 'undead' },
+  traitor: { n: 'Traitor', ac: 14, hp: 24, atk: 5, dmg: [1, 8, 2], thr: 4, tier: 2, fl: [], kind: 'humanoid' },
+};
+const BOSS = {
+  necromancer: { n: 'Necromancer', ac: 12, hp: 40, atk: 6, dmg: [2, 8, 0], fl: ['drain'], sp: { k: 'summon', key: 'skeleton', every: 3, n: 2 }, kind: 'humanoid' },
+  bone_knight: { n: 'Bone Knight', ac: 17, hp: 50, atk: 6, dmg: [1, 10, 3], multi: 2, fl: ['undead', 'fear'], kind: 'undead' },
+  goblin_warboss: { n: 'Goblin Warboss', ac: 15, hp: 42, atk: 6, dmg: [1, 8, 3], multi: 2, fl: [], sp: { k: 'summon', key: 'goblin', every: 3, n: 2 }, kind: 'humanoid' },
+  bugbear_chief: { n: 'Bugbear Chieftain', ac: 16, hp: 58, atk: 6, dmg: [2, 8, 3], fl: [], kind: 'humanoid' },
+  prophet: { n: 'Hollow Prophet', ac: 13, hp: 42, atk: 6, dmg: [2, 8, 0], fl: ['fear'], sp: { k: 'summon', key: 'cultist', every: 3, n: 2 }, kind: 'humanoid' },
+  pit_priest: { n: 'Pit Priest', ac: 15, hp: 50, atk: 6, dmg: [1, 10, 3], multi: 2, fl: ['fear'], kind: 'humanoid' },
+  spider_queen: { n: 'Spider Queen', ac: 15, hp: 54, atk: 6, dmg: [1, 10, 3], fl: ['web', 'weaken'], kind: 'beast' },
+  kobold_sorcerer: { n: 'Kobold Dragonspawn', ac: 14, hp: 40, atk: 6, dmg: [2, 6, 2], fl: [], sp: { k: 'breath', dice: [3, 6], type: 'fire', every: 3, dc: 13 }, kind: 'humanoid' },
+  bandit_lord: { n: 'Bandit Lord', ac: 16, hp: 48, atk: 6, dmg: [1, 8, 3], multi: 2, fl: [], kind: 'humanoid' },
+  hag: { n: 'Bog Hag', ac: 14, hp: 52, atk: 6, dmg: [2, 6, 3], fl: ['weaken', 'drain'], kind: 'fey' },
+  ogre_brute: { n: 'Ogre Warlord', ac: 12, hp: 75, atk: 7, dmg: [2, 10, 4], fl: [], kind: 'giant' },
+};
+
+/* ---------- themes ---------- */
+const THEMES = {
+  crypt: {
+    n: 'Crypt', site: ['the Hollow Vault', 'the Sunken Ossuary', 'the Tomb of Ash', "the Gravewarden's Rest"],
+    rooms: ['burial hall', 'ossuary', 'sarcophagus chamber', "embalmer's workshop", 'funeral gallery', 'bone-lined stair', 'offering chamber', 'crypt library'],
+    sight: ['cobwebbed alcoves line the walls', 'bones are stacked in neat, patient rows', 'a cracked sarcophagus lies half-open', 'faded funeral murals peel from the plaster', 'cold blue light seeps from a seam in the stone'],
+    sound: ['Somewhere, dry bone clicks against stone.', 'The silence presses on your ears.', 'Water drips with slow, deliberate timing.', 'A draft moans through the dark like a sleeper dreaming.'],
+    smell: ['dust and old incense', 'the sweet rot of a long-closed grave', 'cold, mineral damp'],
+    mon: { 1: ['skeleton', 'zombie', 'giant_rat', 'skeleton'], 2: ['ghoul', 'shadow', 'skeleton', 'zombie'], 3: ['wight', 'ghoul', 'shadow'] },
+    bosses: ['necromancer', 'bone_knight'], minions: 'the restless dead',
+    villainTitle: ['the Ashen', 'Gravecaller', 'the Pale Warden', 'Bone-Sworn'],
+    motive: ['wants to raise an army that will never tire', 'is trying to speak once more with someone lost', 'believes death is a disease and the dead are the cure'],
+    ritual: ['a rite of raising', 'the Opening of the Vault'],
+    mcg: ['the Sepulchral Seal', 'a grave-silver reliquary', 'the Lantern of Last Breath'],
+  },
+  warren: {
+    n: 'Warren', site: ['Rotgut Warren', 'the Skullpick Burrows', 'Mudtooth Hold', 'the Gnawed Deeps'],
+    rooms: ['trash-choked tunnel', "chieftain's mess", 'raiders\' armory', 'kennel pit', 'plunder cache', 'smoky barracks', 'mushroom garden', 'rope bridge cavern'],
+    sight: ['crude totems of bone and rag lean against the walls', 'smoke curls from a heap of smoldering refuse', 'crude paint smears the rock in jagged warnings', 'stolen goods lie in heaps, sorted by no logic'],
+    sound: ['Guttural laughter echoes from somewhere ahead.', 'Metal scrapes on stone, again and again.', 'Something growls low in a nearby tunnel.', 'A crude drum thumps in the walls like a slow heartbeat.'],
+    smell: ['wood smoke and spoiled meat', 'wet fur and tallow', 'sour ale and rust'],
+    mon: { 1: ['goblin', 'goblin', 'goblin_archer', 'kobold', 'wolf'], 2: ['hobgoblin', 'bugbear', 'worg', 'goblin_archer', 'hobgoblin'], 3: ['bugbear', 'ogre', 'hobgoblin', 'worg'] },
+    bosses: ['goblin_warboss', 'bugbear_chief'], minions: 'the raiders',
+    villainTitle: ['Skull-Biter', 'the Cruel', 'Ironjaw', 'the Many-Knived'],
+    motive: ['wants a throne worth the name, and a larger tribe to sit before it', 'has been starved off the surface and means to take it back', 'dreams of a war that will make the valley tremble'],
+    ritual: ['a war-rite', 'the Gathering of Tribes'],
+    mcg: ['the Chieftain\'s Horn', 'a stolen village banner', 'the Bonecrown'],
+  },
+  sanctum: {
+    n: 'Sanctum', site: ['the Hollow Sanctum', 'the Drowned Chapel', 'the Chapel Below', 'the Veiled Cathedral'],
+    rooms: ['vestry', 'cellar shrine', 'candle-lit nave', 'scriptorium', 'penitent cells', 'reliquary vault', 'chanting hall', 'bell crypt'],
+    sight: ['black candles burn in iron stands', 'a mural of a faceless saint stares from the wall', 'sigils of chalk and ash cover the flagstones', 'crimson cloth hangs from the rafters like drying wounds'],
+    sound: ['A low, rhythmic chant rolls through the stone.', 'Wax pops and spits in the candle flames.', 'Far off, a bell tolls once, and then not again.', 'Someone is whispering a name over and over.'],
+    smell: ['incense, wax, and copper', 'burnt hair and myrrh', 'old stone and spilled wine'],
+    mon: { 1: ['cultist', 'cultist', 'giant_rat', 'stirge'], 2: ['cult_fanatic', 'cultist', 'animated_armor', 'shadow'], 3: ['cult_fanatic', 'animated_armor', 'ogre'] },
+    bosses: ['prophet', 'pit_priest'], minions: 'the faithful',
+    villainTitle: ['the Veiled', 'Voice-of-the-Deep', 'the Ninth Candle', 'the Hollow Saint'],
+    motive: ['hears a god no one else can, and is sure it is hungry', 'wants to end a plague and will pay any price', 'is certain the world is a cage and means to break it'],
+    ritual: ['the Rite of Opening', 'a midnight communion'],
+    mcg: ['the Ninth Candle', 'a faceless saint\'s reliquary', 'the Choir-Bell'],
+  },
+  delve: {
+    n: 'Delve', site: ['the Ironvein Delve', 'Deepcut Mine', 'the Glimmerfall Works', 'the Collapsed Shaft'],
+    rooms: ['ore-cart tunnel', 'collapsed gallery', 'foreman\'s office', 'smelter hall', 'web-choked cavern', 'flooded shaft', 'crystal vein chamber', 'timbered stair'],
+    sight: ['rusted ore carts sit abandoned on warped rails', 'veins of pale crystal glitter in the rock', 'old support beams lean under their own weight', 'thick webs hang in grey curtains from the ceiling'],
+    sound: ['Pebbles patter down from somewhere unseen.', 'Something skitters in the walls.', 'The timbers creak like an old ship.', 'A distant, steady scrape of claw on stone.'],
+    smell: ['rock dust and cold iron', 'damp earth and old lamp oil', 'sulfur and mildew'],
+    mon: { 1: ['kobold', 'giant_rat', 'stirge', 'kobold', 'goblin'], 2: ['giant_spider', 'hobgoblin', 'stirge', 'bugbear'], 3: ['giant_spider', 'ogre', 'bugbear'] },
+    bosses: ['spider_queen', 'kobold_sorcerer'], minions: 'the things in the dark',
+    villainTitle: ['the Deepwalker', 'Veinhunter', 'the Hollow Queen', 'Cinder-Claw'],
+    motive: ['has claimed the deepest vein and will kill for it', 'serves something old that woke when the miners dug too deep', 'is only trying to keep her brood fed through a bitter winter'],
+    ritual: ['a summoning at the vein-heart', 'the Waking of the Deep'],
+    mcg: ['the Heartstone', 'a miner\'s lucky lantern', 'a map of the lower shafts'],
+  },
+  keep: {
+    n: 'Keep', site: ['Blackthorn Keep', 'the Ruined Bastion', 'Mournwatch Tower', 'the Ashen Garrison'],
+    rooms: ['gatehouse', 'collapsed barracks', 'war room', 'stable block', 'cellar prison', 'armory', 'great hall', 'tower stair'],
+    sight: ['banners hang in tatters from the rafters', 'a long table is set with rotting plates', 'arrow slits stripe the walls with thin light', 'broken weapons crowd a sagging rack'],
+    sound: ['Wind whistles through broken shutters.', 'Boots scuff somewhere above.', 'A door bangs again and again in the draft.', 'A distant laugh dies as quickly as it began.'],
+    smell: ['smoke, horse, and rust', 'old ash and cold stew', 'mildew and boiled leather'],
+    mon: { 1: ['bandit', 'wolf', 'bandit', 'goblin'], 2: ['bandit', 'bugbear', 'worg', 'hobgoblin'], 3: ['bugbear', 'ogre', 'hobgoblin', 'worg'] },
+    bosses: ['bandit_lord', 'hag', 'ogre_brute'], minions: 'the garrison',
+    villainTitle: ['the Red Hand', 'Black-Thorn', 'the Crow-Marshal', 'the Hollow King'],
+    motive: ['holds a grudge against the valley, and has ground it into a plan', 'serves a bargain struck in a bad hour', 'says the valley owes a debt and means to collect'],
+    ritual: ['a blood-oath', 'the Crowning of Ash'],
+    mcg: ['the Marshal\'s Signet', 'the Garrison Ledger', 'a king\'s broken crown'],
+  },
+};
+
+/* ---------- names ---------- */
+const FIRST = ['Aldric', 'Brenna', 'Corwin', 'Dara', 'Edrin', 'Fenna', 'Garrick', 'Hilda', 'Isolde', 'Joren', 'Kestrel', 'Lyra', 'Marek', 'Nessa', 'Orin', 'Perrin', 'Quill', 'Rhea', 'Soren', 'Tamsin', 'Ulric', 'Vesna', 'Wren', 'Yara', 'Bram', 'Cinder', 'Odette', 'Hob', 'Mirela', 'Tobin', 'Ysolde', 'Dunmore', 'Petra', 'Ludo'];
+const DARK = ['Mordra', 'Vexil', 'Grask', 'Nythra', 'Orsk', 'Varnhelm', 'Skarn', 'Illith', 'Drogan', 'Maelis', 'Thessaly', 'Karn', 'Zul', 'Morwen', 'Hask'];
+const PATRON_ROLE = ['mayor', 'innkeeper', 'village elder', 'priestess', 'caravan-master', 'guildmaster', 'miller', 'ferryman'];
+const PLACES = ['Thornwick', 'Marrowfield', 'Greyhollow', 'Ashford', 'Kestrelford', 'Lowmere', 'Pinecrest', 'Stonebridge', 'Highvale', 'Eddleston'];
+const SEED_W1 = ['ember', 'crow', 'iron', 'moss', 'ash', 'salt', 'thorn', 'ghost', 'amber', 'gale', 'raven', 'cinder', 'briar', 'frost', 'ruin', 'bone'];
+const SEED_W2 = ['gate', 'vault', 'hollow', 'spire', 'crown', 'lantern', 'barrow', 'throne', 'well', 'bridge', 'key', 'mask', 'oath', 'grave', 'tide', 'fang'];
+const HERO_NAMES = ['Aelin', 'Bryn', 'Caius', 'Delia', 'Eamon', 'Fiora', 'Gunnar', 'Halia', 'Ivo', 'Jessa', 'Kael', 'Liora', 'Magnus', 'Nyx', 'Oswin', 'Pip', 'Rook', 'Sable', 'Thane', 'Vala'];
+
+/* ---------- hooks ---------- */
+const HOOKS = {
+  rescue: {
+    pitch: '{patron}, the {prole} of {place}, grips your arm. "{ally} was dragged into {site} by {villain}\'s followers three nights ago. Bring {opr} home, and I will pay you {reward} gold."',
+    goal: 'Find {ally} alive and bring {opr} home.', clock: 'Dawn sacrifice', clockMax: 9, twists: ['ally_betrays', 'villain_sympathetic', 'patron_lied'],
+  },
+  recover: {
+    pitch: '{patron}, the {prole} of {place}, lays a sealed purse on the table. "{villain} stole {mcg} from us. Without it, {place} is in danger. Bring it back and {reward} gold is yours."',
+    goal: 'Recover {mcg} from {villain}.', clock: 'The thief escapes', clockMax: 9, twists: ['mcguffin_cursed', 'patron_lied', 'villain_sympathetic'],
+  },
+  ritual: {
+    pitch: '{patron}, the {prole} of {place}, speaks low. "{villain} is performing {ritual} beneath {site}. When it is finished, there will be no {place}. Stop it. I can pay {reward} gold."',
+    goal: 'Stop {ritual} before it is finished.', clock: 'The rite nears completion', clockMax: 8, twists: ['villain_sympathetic', 'patron_lied', 'ally_betrays'],
+  },
+  hunt: {
+    pitch: '{patron}, the {prole} of {place}, points to the hills. "Something is preying on our herds, and our people. The trail leads to {site}, and to {villain}. End it. {reward} gold for the deed."',
+    goal: 'Put an end to {villain} and what hunts from {site}.', clock: 'The hunger grows', clockMax: 9, twists: ['villain_sympathetic', 'patron_lied', 'ally_betrays'],
+  },
+  investigate: {
+    pitch: '{patron}, the {prole} of {place}, wrings their hands. "People keep vanishing near {site}. I need to know why, and who is behind it. {reward} gold, and the thanks of the whole village."',
+    goal: 'Learn why people vanish near {site}.', clock: 'More vanish', clockMax: 9, twists: ['villain_sympathetic', 'patron_lied', 'ally_betrays'],
+  },
+};
+const ROOM_OBJ = {
+  trap: [
+    { obj: 'a pressure-plated corridor', kind: 'floor', dmg: 'piercing', good: ['investigation', 'perception'] },
+    { obj: 'a corridor of dart-slots', kind: 'darts', dmg: 'poison', good: ['acrobatics', 'perception'] },
+    { obj: 'a swinging blade across the passage', kind: 'blade', dmg: 'slashing', good: ['acrobatics', 'investigation'] },
+    { obj: 'a tripwire strung just above the dust', kind: 'wire', dmg: 'bludgeoning', good: ['perception', 'sleight'] },
+    { obj: 'a vent hissing faint green mist', kind: 'gas', dmg: 'poison', good: ['survival', 'medicine'] },
+  ],
+  puzzle: [
+    { obj: 'a door ringed with glowing runes', skill: 'arcana', alt: 'investigation', good: ['arcana', 'investigation'] },
+    { obj: 'a statue whose mouth is a lock', skill: 'history', alt: 'insight', good: ['history', 'insight'] },
+    { obj: 'a mosaic of levers and counterweights', skill: 'investigation', alt: 'sleight', good: ['investigation', 'sleight'] },
+    { obj: 'a shrine with three carved offering bowls', skill: 'religion', alt: 'insight', good: ['religion', 'insight'] },
+    { obj: 'a pedestal of mirrored panels', skill: 'perception', alt: 'arcana', good: ['perception', 'arcana'] },
+  ],
+  hazard: [
+    { obj: 'a rotting plank bridge over a drop', skill: 'acrobatics', alt: 'athletics', good: ['acrobatics', 'athletics'] },
+    { obj: 'a passage flooded to the waist', skill: 'athletics', alt: 'survival', good: ['athletics', 'survival'] },
+    { obj: 'a hall of drifting spores', skill: 'survival', alt: 'medicine', good: ['survival', 'nature', 'medicine'] },
+    { obj: 'a ceiling dripping and ready to fall', skill: 'perception', alt: 'acrobatics', good: ['perception', 'acrobatics'] },
+  ],
+  lore: [
+    { obj: 'a wall of old murals', good: ['history', 'investigation', 'religion'] },
+    { obj: "a dead adventurer's journal", good: ['investigation', 'insight', 'history'] },
+    { obj: 'a ritual diagram scratched into the floor', good: ['arcana', 'religion', 'investigation'] },
+    { obj: "a scribe's cluttered desk", good: ['investigation', 'history', 'insight'] },
+  ],
+  treasure: [
+    { obj: 'an iron-banded chest', good: ['sleight', 'investigation'] },
+    { obj: 'a hidden cache behind loose stones', good: ['perception', 'investigation'] },
+    { obj: "a dead adventurer's pack", good: ['investigation', 'medicine'] },
+    { obj: 'a sealed stone urn', good: ['arcana', 'sleight'] },
+  ],
+};
+const SOCIAL_ROLES = {
+  prisoner: { n: 'captive', d: 'bound and gagged against a pillar', want: 'freedom' },
+  deserter: { n: 'deserter', d: 'crouched in the shadows, shaking', want: 'a way out' },
+  scholar: { n: 'trapped scholar', d: 'pinned behind a toppled shelf', want: 'rescue' },
+  rival: { n: 'rival delver', d: 'leaning on a wall, bandaging an arm', want: 'a share of the spoils' },
+  trader: { n: 'strange trader', d: 'sitting calmly beside a lantern and a heap of goods', want: 'coin' },
+};
+const NPC_ACT = {
+  prisoner: 'strains against the ropes and looks at you with desperate eyes',
+  deserter: 'flinches at the sound of your boots, then freezes',
+  scholar: 'waves a hand weakly, ink-stained and out of breath',
+  rival: 'looks up, unsurprised, and gives a tired, crooked smile',
+  trader: 'tips their hat as if a delver walking in were the most ordinary thing in the world',
+};
+const COMBAT_ACT = {
+  humanoid: ['linger here, weapons loose in their hands', 'crouch around a guttering fire, arguing', 'guard the far archway, watchful and bored', 'mill about, muttering over stolen goods'],
+  beast: ['prowl the chamber, hungry and alert', 'tear at something unpleasant in the corner', 'pace in a tight, restless circle', 'lift their heads at the first scent of you'],
+  undead: ['stand motionless, waiting', 'shamble in slow, aimless circles', 'stir the moment you cross the threshold', 'rattle and sway as if remembering how to walk'],
+  construct: ['stand at attention, perfectly still', 'turn their empty helms toward you in unison'],
+  giant: ['sprawl across the floor, breathing heavily', 'stomp around the chamber, muttering'],
+  fey: ['hover at the edge of the light, grinning'],
+};
+
+/* ---------- narration templates ---------- */
+const TPL = {
+  arrive: ['You move on.', 'You press forward.', 'The passage opens ahead.', 'You step into the next chamber.', 'You slip deeper.'],
+  lead: {
+    combat: ['{count} {names} {act}.', '{count} {names} {act}. They have not noticed you yet.', 'You stop short. {count} {names} {act}.'],
+    trap: ['Ahead lies {obj}. Something about it is wrong.', 'You catch yourself just before {obj}. It has been here a long time, and it is still working.'],
+    puzzle: ['A single barrier stands in your way: {obj}.', 'The passage ends at {obj}. Whoever built it did not want visitors.'],
+    hazard: ['The way forward is {obj}.', 'Your path is blocked by {obj}.'],
+    lore: ['{obj} catches your eye. It looks like someone wanted it remembered.', 'You find {obj}. The details are worth a closer look.'],
+    treasure: ['You find {obj}, tucked out of sight.', '{Obj} sits in the corner, as if waiting for someone patient.'],
+    rest: ['A rare quiet. This corner is dry, defensible, and strangely untouched.', 'You find a still pocket in the dungeon, sheltered from the worst of it.'],
+    social: ['A {role} sits {d}. They {act}.', 'You are not alone. A {role} is here, {d}. They {act}.'],
+  },
+  succ: {
+    athletics: ['You throw your shoulder into it, and {obj} gives way with a groan.', 'Muscle and momentum carry you through {obj}.'],
+    acrobatics: ['You flow past {obj} like water, light on your feet.', 'A twist, a leap, and {obj} is behind you.'],
+    stealth: ['You keep to the shadows and make no sound. {Obj} never notices you.', 'Soft steps, shallow breath. You pass {obj} unseen.'],
+    sleight: ['Quick fingers do the work. {Obj} clicks open without a fuss.', 'A deft touch, a held breath. {Obj} is yours.'],
+    arcana: ['You read the weave of power in {obj} and nudge it aside.', 'The spell-work in {obj} is clever, but you have seen cleverer.'],
+    history: ['A half-remembered legend clicks into place. {Obj} makes sense now.', 'You recall the old stories, and {obj} reveals its secret.'],
+    investigation: ['You study {obj} until the pattern gives itself up.', 'A careful look reveals what {obj} hoped you would miss.'],
+    nature: ['You read the signs of {obj} the way a hunter reads tracks.', 'Nature has its own rules, and you know them.'],
+    religion: ['You murmur the old words. {Obj} accepts the offering.', 'The symbols are familiar. A short prayer settles it.'],
+    insight: ['You see through {obj} the moment you look past what it is meant to show.', 'Something in the details whispers the truth, and you listen.'],
+    medicine: ['You act with calm hands and a clear head. {Obj} is handled.', 'A trained eye finds exactly what is wrong.'],
+    perception: ['You catch the small thing others would miss, and {obj} is no longer a danger.', 'Sharp eyes and a steady mind. {Obj} reveals itself.'],
+    survival: ['You pick the safe path through {obj}, one careful step at a time.', 'Experience guides you through {obj}.'],
+    deception: ['The lie comes out smooth and confident, and it holds.', 'You wrap a falsehood in just enough truth, and it takes.'],
+    intimidation: ['You let your voice drop and your shadow lengthen. The resistance melts.', 'A hard stare and a harder promise do the work.'],
+    persuasion: ['You say the right words in the right order, and the room softens.', 'Honest, warm, and sure, you make your case. It lands.'],
+  },
+  fail: {
+    athletics: ['{Obj} refuses to budge, and the effort leaves you winded.', 'You strain against {obj}, and something in your shoulder complains.'],
+    acrobatics: ['Your footing slips at the worst moment.', 'You mistime it, and {obj} does not forgive.'],
+    stealth: ['A boot scuffs, a buckle clinks. Someone, or something, notices.', 'Your shadow falls the wrong way at the wrong time.'],
+    sleight: ['Your fingers slip, and {obj} responds with a loud, ugly click.', 'A tool snaps in your hand. That was noisy.'],
+    arcana: ['The pattern in {obj} shifts under your gaze, and you lose the thread.', 'You push at the weave, and it pushes back.'],
+    history: ['You almost remember the legend, and almost is not enough.', 'The old tale slips away just as you reach for it.'],
+    investigation: ['You look for a long time and miss the one detail that matters.', 'Every clue you find points the wrong way.'],
+    nature: ['You misread the signs, and the land makes you pay for it.', 'You were sure, and you were wrong.'],
+    religion: ['The words feel hollow in your mouth, and {obj} stays silent.', 'You stumble through the rite and the wrong thing listens.'],
+    insight: ['You mistake the performance for the truth.', 'Something is hidden here, and you are not seeing it.'],
+    medicine: ['Your hands shake, and the problem worsens.', 'A wrong guess, and things get a little worse.'],
+    perception: ['You see exactly what you were meant to see, and no more.', 'Dust, shadow, and a moment too late.'],
+    survival: ['The ground gives way under a careless step.', 'You choose the wrong path, and {obj} gets its due.'],
+    deception: ['The lie comes out lopsided, and they see straight through it.', 'Your story falls apart on the second sentence.'],
+    intimidation: ['Your threat lands badly. They look more annoyed than afraid.', 'You puff up your chest, and they do not buy it.'],
+    persuasion: ['Your words sound better in your head than out loud.', 'You make your case, and it falls flat.'],
+  },
+  hit: ['You strike {t}.', 'Your blow lands on {t}.', 'You cut into {t}.', 'You catch {t} cleanly.'],
+  miss: ['You swing at {t} and miss.', '{T} twists aside as you strike.', 'Your attack glances off {t}.'],
+  ehit: ['{E} hits you.', '{E} lands a blow.', '{E} catches you off guard.', '{E} tears into you.'],
+  emiss: ['{E} swings and misses.', '{E} lunges, but you turn the blow.', '{E} cannot find an opening.'],
+  die: ['{T} falls and does not rise.', '{T} crumples.', '{T} collapses, lifeless.'],
+  npc: {
+    trap: [], prisoner: ['"Please, get me out of here. I will tell you everything I know."', '"Thank the gods. Quickly, before they come back."'],
+    deserter: ['"I only joined for the coin. I never wanted any of this."', '"Do not call the others. I will tell you what I know."'],
+    scholar: ['"Careful, there are traps everywhere. I mapped them, but my notes are under this shelf."', '"Fascinating place, truly, if I were not about to die in it."'],
+    rival: ['"Another fool after the same prize? Well, there is room for two, if you split what we find."', '"Do not worry, I am not here to fight. Not yet."'],
+    trader: ['"Delvers always get thirsty and short on supplies. I have a little of both for sale."', '"A traveler needs a friend underground. I sell friends, in bottles and bombs."'],
+  },
+};
+
+/* ---------- ASCII art (original, drawn for this game) ---------- */
+const R = String.raw;
+const ART = {
+  goblin: R`
+   ,___,
+  (o\_/o)
+  /(   )\
+   /| |\
+  ^^   ^^`,
+  kobold: R`
+   /\_/\
+  ( o.o )
+  (>   <)~
+   /| |\
+  _/   \_`,
+  giant_rat: R`
+  ()_()
+  (o.o)  ____
+  (> <)~(____)
+   ""   " "`,
+  skeleton: R`
+    ___
+   (o o)
+   /|=|\
+    |||
+   _/ \_`,
+  zombie: R`
+    ___
+   (x_x)
+  --|~|--
+    | |
+   _| |_`,
+  bandit: R`
+   ,---.
+  ( ._. )
+  /|   |\
+  / |_| \
+   /   \
+`,
+  cultist: R`
+    /\
+   /  \
+  ( __ )
+  /|  |\
+  ~~~~~~`,
+  wolf: R`
+   /\___/\
+  ( o   o )__
+  (  v    ___)
+   |||  |||`,
+  stirge: R`
+  \  ,  /
+   \(oo)/
+   /\/\/\
+     \/ `,
+  hobgoblin: R`
+   ,---,
+  [ o_o ]
+  /|###|\
+   |   |
+  _|   |_`,
+  bugbear: R`
+   /^^^\
+  ( O_O )
+  /|###|\
+  / |_| \
+   _| |_`,
+  ghoul: R`
+   .---.
+  ( o o )
+  /|vvv|\
+  //   \\
+  ^^   ^^`,
+  shadow: R`
+    .--.
+   ( oo )
+  ~/    \~
+   ~    ~
+    ~~~~`,
+  giant_spider: R`
+  \\ (oo) //
+   \\/||\//
+   //\||/\\
+  //  ||  \\
+`,
+  cult_fanatic: R`
+     /\
+    /++\
+   ( ** )
+  \/|  |\/
+   ~~~~~~`,
+  worg: R`
+   /\_/\
+  ( @ @ )\_
+  (  w   __)
+   |||  |||`,
+  animated_armor: R`
+    ___
+   [___]
+  /[|=|]\
+   [   ]
+   |_|_|`,
+  ogre: R`
+   _____
+  ( O O )
+  /|~~~|\
+ / |   | \
+   |_|_|`,
+  wight: R`
+    ___
+   (o o)
+  /|\_/|\
+   |   |
+  ~~~~~~~`,
+  traitor: R`
+   ,---.
+  ( -_- )
+  /|   |\
+  / |_| \
+   /   \
+`,
+  necromancer: R`
+    /\
+   /__\  *
+  ( oo )/
+  /|  |/
+  ~~~~~~`,
+  bone_knight: R`
+   _/^\_
+  [(o o)]
+  /[|#|]\
+   [   ]
+   |_|_|`,
+  goblin_warboss: R`
+  ,-^-^-,
+  ( O_O )
+  /|###|\ |
+  / |_| \/
+   /   \
+`,
+  bugbear_chief: R`
+  \\^^^//
+  ( O_O )
+  /|###|\
+ /\ |_| /\
+   _| |_`,
+  prophet: R`
+    /\
+   /::\
+  ( ,, )
+  \/||\/
+   ~~~~`,
+  pit_priest: R`
+   _/\_
+  (_@@_)
+  /|##|\
+   |  |
+  ~~~~~~`,
+  spider_queen: R`
+  \\\ (OO) ///
+   \\\/||\///
+   ///\||/\\\
+  ///  ||  \\\
+`,
+  kobold_sorcerer: R`
+   /\_/\  ~
+  ( O.O )/~~
+  (>   <)~~
+   /| |\
+  _/   \_`,
+  bandit_lord: R`
+   ,=^=,
+  ( >_< )
+  /|###|\
+  / |_| \
+   /   \
+`,
+  hag: R`
+    _/\_
+   (@  @)
+   /vvvv\
+  /|    |\
+   ~~~~~~`,
+  ogre_brute: R`
+   _____
+  (>O O<)
+ /|#####|\
+/ |     | \
+  |_|_|_|`,
+};
+const ART_KIND = { humanoid: 'bandit', beast: 'wolf', undead: 'skeleton', construct: 'animated_armor', giant: 'ogre', fey: 'hag' };
+function artFor(e) {
+  const raw = ART[e.key] || ART[ART_KIND[e.kind]] || ART.bandit;
+  return raw.replace(/^\n|\s+$/g, '');
+}
+
+/* ---------- hero ---------- */
+const RES_N = { wind: 'Second Wind', surge: 'Action Surge', dodge: 'Uncanny Dodge', slots: 'Spell slots', turn: 'Turn Undead', breath: 'Breath weapon' };
+
+const prof = (h) => 2 + Math.floor((h.level - 1) / 4);
+const aMod = (h, a) => mod(h.abil[a]);
+const gearList = (h) => (h.gear || []).map((id) => GEAR.find((g) => g.id === id)).filter(Boolean);
+
+function heroSkills(h) {
+  const s = new Set(CLASSES[h.cls].skills.slice(0, h.cls === 'rogue' ? 4 : 3));
+  BACKGROUNDS[h.bg].skills.forEach((k) => s.add(k));
+  if (h.species === 'elf') s.add('perception');
+  return s;
+}
+function skillMod(h, sk) {
+  let m = aMod(h, SKILLS[sk].a);
+  if (heroSkills(h).has(sk)) m += prof(h);
+  gearList(h).forEach((g) => { if (g.skill && g.skill[sk]) m += g.skill[sk]; });
+  return m;
+}
+function saveMod(h, ab) {
+  let m = aMod(h, ab);
+  if (CLASSES[h.cls].saves.includes(ab)) m += prof(h);
+  return m;
+}
+function heroAC(h) {
+  let ac = CLASSES[h.cls].ac(h);
+  gearList(h).forEach((g) => { if (g.ac) ac += g.ac; });
+  return ac;
+}
+function atkBonus(h) { return aMod(h, CLASSES[h.cls].wpn.abil) + prof(h) + gearList(h).reduce((s, g) => s + (g.atk || 0), 0); }
+function spellMod(h) { return aMod(h, CLASSES[h.cls].main) + prof(h); }
+function spellDC(h) { return 8 + spellMod(h); }
+function calcMaxHP(h) {
+  const c = CLASSES[h.cls];
+  const con = aMod(h, 'con');
+  let hp = c.hd + con + 6;
+  for (let l = 2; l <= h.level; l++) hp += Math.max(4, Math.floor(c.hd / 2) + 1 + con + 3);
+  if (h.species === 'dwarf') hp += h.level;
+  gearList(h).forEach((g) => { if (g.hp) hp += g.hp; });
+  return Math.max(hp, 8);
+}
+function fortuneMax(h) { return 3 + (h.species === 'human' ? 1 : 0) + gearList(h).reduce((s, g) => s + (g.fort || 0), 0); }
+function resMax(h) {
+  const L = h.level, c = h.cls, r = {};
+  if (c === 'fighter') { r.wind = 1; if (L >= 2) r.surge = 1; }
+  if (c === 'rogue' && L >= 5) r.dodge = 1;
+  if (c === 'wizard' || c === 'cleric') r.slots = L + 2;
+  if (c === 'cleric' && L >= 2) r.turn = 1;
+  if (h.species === 'dragonborn') r.breath = 1;
+  return r;
+}
+function recalc(h) {
+  const before = h.hpMax || 0;
+  h.hpMax = calcMaxHP(h);
+  if (!before) h.hp = h.hpMax;
+  h.hp = clamp(h.hp, 0, h.hpMax);
+}
+function newHero(o) {
+  const c = CLASSES[o.cls];
+  const h = {
+    id: 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1e5).toString(36),
+    name: o.name || pickR(HERO_NAMES), species: o.species, cls: o.cls, bg: o.bg, drive: o.drive,
+    level: 1, abil: Object.assign({}, c.stats), gold: 0, inv: { potion: 2 }, gear: [], res: {}, fortune: 2,
+    legacy: [], chronicle: [], alive: true, adventures: 0, hp: 0, hpMax: 0,
+  };
+  recalc(h);
+  h.hp = h.hpMax;
+  h.res = resMax(h);
+  h.fortune = 2 + (h.species === 'human' ? 1 : 0);
+  return h;
+}
+function readyHero(h) {
+  recalc(h);
+  h.hp = h.hpMax;
+  h.res = resMax(h);
+  h.fortune = Math.min(fortuneMax(h), 2 + (h.species === 'human' ? 1 : 0) + gearList(h).reduce((s, g) => s + (g.fort || 0), 0));
+  h.inv.potion = Math.max(h.inv.potion || 0, 2);
+}
+function restHero(h, frac) {
+  h.res = resMax(h);
+  const heal = Math.ceil(h.hpMax * frac);
+  const before = h.hp;
+  h.hp = clamp(h.hp + heal, 0, h.hpMax);
+  return h.hp - before;
+}
+const LEVEL_NOTES = {
+  fighter: { 2: 'Action Surge: take an extra action once per rest.', 3: 'Your training pays off: more HP and a surer hand.', 4: 'STR +2.', 5: 'Extra Attack: you strike twice when you attack.' },
+  rogue: { 2: 'Cunning Hide as a bonus action.', 3: 'Sneak Attack grows to 2d6.', 4: 'DEX +2.', 5: 'Uncanny Dodge: halve one hit per rest. Sneak Attack 3d6.' },
+  wizard: { 2: 'More spell slots.', 3: 'Scorching Ray learned.', 4: 'INT +2.', 5: 'Fire Bolt grows to 2d10.' },
+  cleric: { 2: 'Turn Undead learned.', 3: 'More spell slots.', 4: 'WIS +2.', 5: 'Sacred Flame 2d8, Cure Wounds heals more.' },
+};
+function levelUp(h) {
+  if (h.level >= 5) return null;
+  h.level++;
+  const c = CLASSES[h.cls];
+  if (h.level === 4) h.abil[c.main] = Math.min(20, h.abil[c.main] + 2);
+  const old = h.hpMax;
+  h.hpMax = calcMaxHP(h);
+  h.hp = Math.min(h.hpMax, h.hp + (h.hpMax - old));
+  h.res = resMax(h);
+  return { gain: h.hpMax - old, note: (LEVEL_NOTES[h.cls] || {})[h.level] || '' };
+}
+
+/* powers usable in combat */
+function powerList(h) {
+  const L = h.level, c = h.cls, P = [];
+  if (c === 'fighter') {
+    P.push({ id: 'second_wind', n: 'Second Wind', t: 'bonus', res: 'wind', d: 'Heal 1d10 + level.' });
+    if (L >= 2) P.push({ id: 'action_surge', n: 'Action Surge', t: 'free', res: 'surge', d: 'Take an extra action right now.' });
+  }
+  if (c === 'rogue') P.push({ id: 'hide', n: 'Hide', t: 'bonus', d: 'Stealth check. If you vanish, your next attack has advantage and Sneak Attack.' });
+  if (c === 'wizard') {
+    P.push({ id: 'firebolt', n: 'Fire Bolt', t: 'action', tgt: true, d: 'Cantrip. Ranged spell attack, ' + (L >= 5 ? '2d10' : '1d10') + ' fire.' });
+    P.push({ id: 'magic_missile', n: 'Magic Missile', t: 'action', res: 'slots', tgt: true, d: 'Three darts that never miss, 1d4+1 each.' });
+    P.push({ id: 'shield', n: 'Shield', t: 'bonus', res: 'slots', d: '+5 AC until your next turn.' });
+    P.push({ id: 'sleep', n: 'Sleep', t: 'action', res: 'slots', d: 'Roll 5d8 HP of foes to sleep, weakest first.' });
+    if (L >= 3) P.push({ id: 'scorching_ray', n: 'Scorching Ray', t: 'action', res: 'slots', tgt: true, d: 'Three fire rays, 2d6 each (a spell attack for each).' });
+  }
+  if (c === 'cleric') {
+    P.push({ id: 'sacred_flame', n: 'Sacred Flame', t: 'action', tgt: true, d: 'Cantrip. DEX save or ' + (L >= 5 ? '2d8' : '1d8') + ' radiant.' });
+    P.push({ id: 'cure_wounds', n: 'Cure Wounds', t: 'action', res: 'slots', d: 'Heal 1d8 + WIS' + (L >= 5 ? ' + 1d8' : '') + '.' });
+    P.push({ id: 'guiding_bolt', n: 'Guiding Bolt', t: 'action', res: 'slots', tgt: true, d: 'Spell attack, 4d6 radiant.' });
+    if (L >= 2) P.push({ id: 'turn_undead', n: 'Turn Undead', t: 'action', res: 'turn', d: 'Undead make a WIS save or flee for two rounds.' });
+  }
+  if (h.species === 'dragonborn') P.push({ id: 'breath', n: 'Breath Weapon', t: 'action', res: 'breath', d: 'DEX save, ' + (L >= 5 ? '3d6' : '2d6') + ' to every foe.' });
+  return P;
+}
+function passiveLines(h) {
+  const out = [];
+  if (h.cls === 'rogue') out.push('Sneak Attack: +' + Math.ceil(h.level / 2) + 'd6 once per turn when you have advantage or a hidden strike.');
+  if (h.cls === 'fighter' && h.level >= 5) out.push('Extra Attack: you attack twice with the Attack action.');
+  if (h.cls === 'rogue' && h.level >= 5) out.push('Uncanny Dodge: halve the first hit you take in a fight.');
+  out.push(SPECIES[h.species].perk);
+  return out;
+}
+function needWord(m, dc) {
+  const need = dc - m;
+  if (need <= 4) return 'Easy';
+  if (need <= 9) return 'Fair';
+  if (need <= 13) return 'Tough';
+  return 'Long shot';
+}
+function dcFor(level, diff) { return 11 + diff * 2 + Math.floor((level - 1) / 2); }
+
+/* ---------- adventure generator (the story spine) ---------- */
+function genSeed() { return pickR(SEED_W1) + '-' + pickR(SEED_W2) + '-' + (10 + Math.floor(dRand.f() * 90)); }
+
+function tierFor(L, rng) {
+  if (L <= 1) return 1;
+  if (L === 2) return rng.chance(0.3) ? 2 : 1;
+  if (L === 3) return 2;
+  if (L === 4) return rng.chance(0.35) ? 3 : 2;
+  return 3;
+}
+const budgetFor = (L) => Math.max(3, Math.round((2 + 2 * L) * 0.8));
+function pickEnemies(T, L, budget, rng, mul) {
+  const keys = [];
+  let left = Math.max(2, Math.round(budget * mul));
+  const pool = T.mon[tierFor(L, rng)];
+  let guard = 0;
+  while (left > 0 && keys.length < 5 && guard++ < 24) {
+    const cand = pool.filter((k) => MON[k].thr <= left);
+    if (!cand.length) break;
+    const k = rng.pick(cand);
+    keys.push(k);
+    left -= MON[k].thr;
+    if (keys.length >= 2 && rng.chance(0.25)) break;
+  }
+  if (!keys.length) keys.push(pool.slice().sort((a, b) => MON[a].thr - MON[b].thr)[0]);
+  return keys;
+}
+function enemyNames(keys) {
+  const counts = {};
+  keys.forEach((k) => { counts[k] = (counts[k] || 0) + 1; });
+  const parts = Object.keys(counts).map((k) => {
+    const m = MON[k] || BOSS[k];
+    const c = counts[k];
+    return c === 1 ? an(m.n.toLowerCase()) : numWord(c) + ' ' + (m.pl || m.n + 's').toLowerCase();
+  });
+  if (parts.length === 1) return parts[0];
+  return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+function numWord(n) { return ['no', 'one', 'two', 'three', 'four', 'five', 'six'][n] || String(n); }
+
+const DOOR_HINT = {
+  combat: ['voices and the scrape of steel', 'a low, rumbling growl', 'shuffling feet, more than one pair', 'the smell of smoke and sweat'],
+  trap: ['a faint metallic click', 'a draft smelling of oil', 'scratch marks on the floor', 'dust disturbed in straight lines'],
+  puzzle: ['a pale glow under the door', 'a hum like a struck bell', 'carved symbols around the frame'],
+  hazard: ['the sound of running water', 'groaning timber', 'a damp, sour draft'],
+  lore: ['scraps of old paper on the floor', 'faded paint on the stones'],
+  treasure: ['a glint in the dark', 'a coin shining on the floor'],
+  rest: ['a still, warm quiet', 'a steady light, small as a candle'],
+  social: ['a human voice, low and tired', 'the clink of a lantern'],
+};
+const TYPE_LABEL = { combat: 'Danger', trap: 'Trap', puzzle: 'Puzzle', hazard: 'Hazard', lore: 'Secrets', treasure: 'Treasure', rest: 'Shelter', social: 'Someone is here' };
+
+function generateAdventure(seed, hero, opts) {
+  opts = opts || {};
+  const rng = RNG(seed);
+  const L = hero.level;
+  const diffMul = { story: 0.75, standard: 1, grim: 1.3 }[opts.difficulty || 'standard'] || 1;
+  const themeKey = opts.theme && opts.theme !== 'random' ? opts.theme : rng.pick(Object.keys(THEMES));
+  const T = THEMES[themeKey];
+  const hookKey = rng.pick(Object.keys(HOOKS));
+  const H = HOOKS[hookKey];
+  const used = new Set();
+  const nm = (pool) => {
+    let n, g = 0;
+    do { n = rng.pick(pool); } while (used.has(n) && g++ < 30);
+    used.add(n);
+    return n;
+  };
+  const place = rng.pick(PLACES);
+  const site = rng.pick(T.site);
+  const patron = { name: nm(FIRST), role: rng.pick(PATRON_ROLE), friend: false };
+  const villain = { name: nm(DARK) + ' ' + rng.pick(T.villainTitle), bossKey: rng.pick(T.bosses), motive: rng.pick(T.motive), kin: null };
+  villain.name = villain.name.replace(' the the ', ' the ');
+  const mcg = rng.pick(T.mcg);
+  const ritual = rng.pick(T.ritual);
+  const prs = [{ o: 'her', p: 'her' }, { o: 'him', p: 'his' }, { o: 'them', p: 'their' }];
+  const reward = 30 + L * 20 + rng.int(0, 20);
+  const advj = rng.pick(['Hollow', 'Silent', 'Black', 'Sunken', 'Burning', 'Forsaken', 'Pale', 'Weeping']);
+  const noun = rng.pick(['Oath', 'Crown', 'Lantern', 'Vigil', 'Bargain', 'Choir', 'Debt', 'Hunger']);
+  const adv = {
+    seed: String(seed), title: 'The ' + advj + ' ' + noun, theme: themeKey, hook: hookKey, place, site, difficulty: opts.difficulty || 'standard',
+    patron, villain, mcg, ritual, reward, npcs: {}, allyId: null, rooms: {}, slots: [],
+    clock: { label: H.clock, max: H.clockMax, at: 0 }, twist: { type: null, revealed: false, outcome: null }, legacyUsed: [], pr: null,
+  };
+
+  /* legacy threads from earlier adventures */
+  const legacy = (hero.legacy || []).slice();
+  let returning = null;
+  const lg = legacy.length ? legacy[0] : null;
+  if (lg) {
+    if (lg.t === 'ally_saved') {
+      patron.name = lg.name; patron.role = 'old friend'; patron.friend = true; adv.reward = Math.round(adv.reward * 1.25);
+      adv.legacyUsed.push(lg);
+    } else if (lg.t === 'villain_slain') {
+      villain.kin = lg.name;
+      villain.motive = 'is hunting the one who killed ' + lg.name + ', and everyone who stands near them';
+      adv.legacyUsed.push(lg);
+    } else if (lg.t === 'villain_spared' || lg.t === 'npc_helped') {
+      returning = { name: lg.name, t: lg.t };
+      adv.legacyUsed.push(lg);
+    }
+  }
+  const prLine = (s) => fill(s, { patron: patron.name, prole: patron.role, place, site, villain: villain.name, mcg, ritual, reward: adv.reward, ally: '{ally}', opr: '{opr}' });
+
+  /* ally */
+  const roles = ['scout', 'sellsword', 'priest'];
+  function makeAlly(captive) {
+    const pr = rng.pick(prs);
+    adv.pr = pr;
+    adv.allyId = 'ally';
+    adv.npcs.ally = { id: 'ally', name: nm(FIRST), role: rng.pick(roles), pr, att: captive ? 0 : 1, met: !captive, alive: true, active: !captive, captive: !!captive, betrayer: false, hp: 10 + 3 * L, hpMax: 10 + 3 * L };
+    return adv.npcs.ally;
+  }
+  if (hookKey === 'rescue') makeAlly(true);
+  else if (rng.chance(0.4)) makeAlly(false);
+  adv.twist.type = rng.pick(H.twists);
+  if (adv.twist.type === 'ally_betrays' && !adv.allyId) makeAlly(false);
+  const ally = adv.npcs.ally;
+  const swap = (s) => s.split('{ally}').join(ally ? ally.name : 'someone').split('{opr}').join(ally ? ally.pr.o : 'them');
+  const pitch = swap(prLine(H.pitch));
+  adv.pitch = patron.friend ? 'Your old friend ' + patron.name + ' finds you first. ' + pitch : pitch;
+  adv.goal = swap(prLine(H.goal));
+
+  /* rooms */
+  const roomNames = rng.shuffle(T.rooms);
+  let rcount = 0;
+  const lair = rng.pick(['inner sanctum', 'deep chamber', 'lair', 'throne room', 'sunken heart']);
+  const diff = (d0) => dcFor(L, d0);
+  const budget = budgetFor(L);
+  function mk(type, o) {
+    const id = 'r' + rcount++;
+    const room = Object.assign({ id, type, name: roomNames[rcount % roomNames.length], hint: rng.pick(DOOR_HINT[type] || ['a quiet doorway']) }, o || {});
+    adv.rooms[id] = room;
+    return room;
+  }
+  function combatRoom(elite) {
+    const keys = pickEnemies(T, L, budget + (elite ? 1 : 0), rng, diffMul);
+    const intelligent = keys.every((k) => MON[k].kind === 'humanoid');
+    const undead = keys.every((k) => MON[k].fl.includes('undead'));
+    return mk('combat', { enemies: keys, elite: !!elite, intelligent, undead, ambushDC: diff(0), talkDC: diff(1), slipDC: diff(1), searchDC: diff(0) });
+  }
+  function trapRoom() {
+    const o = rng.pick(ROOM_OBJ.trap);
+    return mk('trap', { obj: o.obj, tkind: o.kind, dmgType: o.dmg, good: o.good, alarm: rng.chance(0.4), dc: diff(rng.pick([0, 1])), dice: [1 + Math.floor((L - 1) / 2), 8] });
+  }
+  function puzzleRoom() {
+    const o = rng.pick(ROOM_OBJ.puzzle);
+    return mk('puzzle', { obj: o.obj, skill: o.skill, alt: o.alt, good: o.good, dc: diff(rng.pick([0, 1])), dice: [1 + Math.floor((L - 1) / 2), 6] });
+  }
+  function hazardRoom() {
+    const o = rng.pick(ROOM_OBJ.hazard);
+    return mk('hazard', { obj: o.obj, skill: o.skill, alt: o.alt, good: o.good, dc: diff(0), dice: [1 + Math.floor((L - 1) / 2), 6] });
+  }
+  function loreRoom() {
+    const o = rng.pick(ROOM_OBJ.lore);
+    return mk('lore', { obj: o.obj, good: o.good, dc: diff(0) });
+  }
+  function treasureRoom() {
+    const o = rng.pick(ROOM_OBJ.treasure);
+    const owned = new Set(hero.gear || []);
+    const gearPool = GEAR.filter((g) => !owned.has(g.id));
+    const loot = { gold: rng.int(8, 16) * (L + 1), items: [rng.pick(['potion', 'oil', 'smoke', 'scroll'])], gear: gearPool.length && rng.chance(0.2) ? rng.pick(gearPool).id : null, key: rng.chance(0.45) };
+    return mk('treasure', { obj: o.obj, good: o.good, dc: diff(0), trapped: rng.chance(0.4), dice: [1 + Math.floor((L - 1) / 2), 6], loot });
+  }
+  function restRoom() { return mk('rest', { kind: rng.pick(['shrine', 'camp']), name: rng.pick(['quiet alcove', 'forgotten shrine', 'dry side-chamber', 'old guardroom']) }); }
+  function socialRoom(role, o) {
+    const id = role === 'prisoner' ? 'ally' : 'n' + rcount;
+    if (role !== 'prisoner' || !adv.npcs.ally) adv.npcs[id] = Object.assign({ id, name: nm(FIRST), role, att: 0, met: false, alive: true }, o || {});
+    const r = mk('social', { npc: id, role, dcHelp: diff(0), dcTalk: diff(1), dcLie: diff(1), dcThreat: diff(1) });
+    return r;
+  }
+
+  const entrance = mk('entrance', { name: 'threshold', hint: 'the way in', dc: diff(0) });
+  const s1a = combatRoom(false);
+  const s1b = (function () { return { trap: trapRoom, puzzle: puzzleRoom, hazard: hazardRoom, lore: loreRoom }[rng.pick(['trap', 'puzzle', 'hazard', 'lore'])](); })();
+  let s2a;
+  if (returning) {
+    adv.npcs.ret = { id: 'ret', name: returning.name, role: 'returning', att: 1, met: false, alive: true, from: returning.t };
+    s2a = mk('social', { npc: 'ret', role: 'returning', dcHelp: diff(0), dcTalk: diff(1), dcLie: diff(1), dcThreat: diff(1) });
+  } else if (hookKey === 'rescue' && ally && ally.captive) s2a = socialRoom('prisoner');
+  else s2a = socialRoom(rng.pick(['deserter', 'scholar', 'rival', 'trader']));
+  const s2b = (function () { const t = rng.pick(['combat', 'treasure', 'lore']); return t === 'combat' ? combatRoom(false) : t === 'treasure' ? treasureRoom() : loreRoom(); })();
+  const twist = mk('twist', { name: 'turning point', hint: 'something is wrong here', twist: adv.twist.type });
+  const s4a = combatRoom(true);
+  const s4b = (function () { const t = rng.pick(['puzzle', 'trap', 'hazard', 'lore'].filter((x) => x !== s1b.type)); return { trap: trapRoom, puzzle: puzzleRoom, hazard: hazardRoom, lore: loreRoom }[t](); })();
+  const s5a = restRoom();
+  const s5b = (function () { const t = rng.pick(['treasure', 'combat', 'lore']); return t === 'combat' ? combatRoom(false) : t === 'treasure' ? treasureRoom() : loreRoom(); })();
+  const boss = mk('boss', { name: lair, hint: 'the heart of it', bossKey: villain.bossKey });
+  const order = [[entrance], [s1a, s1b], [s2a, s2b], [twist], [s4a, s4b], [s5a, s5b], [boss]];
+  adv.slots = order.map((pair) => ({ opts: rng.shuffle(pair.map((r) => r.id)) }));
+  adv.titleFull = adv.title + ' of ' + site.replace(/^the /i, '');
+  return adv;
+}
+
+/* ---------- play engine: state, rolls, effects, scenes ---------- */
+let S = null;          // whole save: { settings, heroes, run, fallen }
+let run = null;        // current adventure run (S.run)
+let hero = null;       // hero in the current run
+const ui = { dirty: true, onChange: null, onNarrate: null };
+function changed() { if (ui.onChange) ui.onChange(); }
+
+let entryId = 1;
+function say(kind, text, extra) {
+  const e = Object.assign({ id: entryId++, k: kind, t: text }, extra || {});
+  run.log.push(e);
+  if (run.log.length > 260) run.log.splice(0, run.log.length - 260);
+  return e;
+}
+function narr(text, facts) {
+  const e = say('narr', text, { tpl: text });
+  if (facts && ui.onNarrate) ui.onNarrate(e, facts);
+  return e;
+}
+
+/* ---------- dice with context ---------- */
+function d20roll(mode) {
+  const one = () => {
+    let v = d(20);
+    let lucky = false;
+    if (v === 1 && hero.species === 'halfling') { v = d(20); lucky = true; }
+    return { v, lucky };
+  };
+  const a = one();
+  if (!mode) return { r: a.v, all: [a.v], lucky: a.lucky, mode: 0 };
+  const b = one();
+  const r = mode > 0 ? Math.max(a.v, b.v) : Math.min(a.v, b.v);
+  return { r, all: [a.v, b.v], lucky: a.lucky || b.lucky, mode };
+}
+function modeStr(m) { return m > 0 ? ' (advantage)' : m < 0 ? ' (disadvantage)' : ''; }
+
+function doCheck(skill, dc, mode) {
+  const m = skillMod(hero, skill);
+  const x = d20roll(mode || 0);
+  const total = x.r + m;
+  const crit = x.r === 20, fumble = x.r === 1;
+  const ok = crit || (!fumble && total >= dc);
+  return { skill, dc, m, x, total, ok, crit, fumble };
+}
+function doSave(abil, dc, mode) {
+  const m = saveMod(hero, abil);
+  const x = d20roll(mode || 0);
+  const total = x.r + m;
+  const ok = x.r === 20 || (x.r !== 1 && total >= dc);
+  return { abil, dc, m, x, total, ok };
+}
+function rollChip(c) {
+  const nm = c.skill ? SKILLS[c.skill].n : ABIL_N[c.abil] + ' save';
+  const dice = c.x.all.length > 1 ? 'd20 [' + c.x.all.join(', ') + '→' + c.x.r + ']' : 'd20 [' + c.x.r + ']';
+  return nm + ': ' + dice + ' ' + sgn(c.m) + ' = ' + c.total + ' vs DC ' + c.dc + ' — ' + (c.crit ? 'critical success' : c.fumble ? 'critical failure' : c.ok ? 'success' : 'failure');
+}
+
+/* ---------- ledger helpers ---------- */
+const led = () => run.led;
+const flag = (k) => !!run.led.flags[k];
+function setFlag(k, v) { run.led.flags[k] = v === undefined ? true : v; }
+function npcOf(id) { return run.adv.npcs[id]; }
+function allyNow() { const a = run.adv.npcs.ally; return a && a.active && a.alive && !a.betrayer ? a : null; }
+function deed(text) { led().deeds.push(text); }
+function queueCb(text) { led().cbs.push(text); if (led().cbs.length > 6) led().cbs.shift(); }
+function addAtt(id, n) {
+  const p = npcOf(id);
+  if (!p) return;
+  p.att = clamp(p.att + n, -3, 3);
+  p.met = true;
+}
+function gainFortune(n) {
+  const before = hero.fortune;
+  hero.fortune = clamp(hero.fortune + n, 0, fortuneMax(hero));
+  return hero.fortune - before;
+}
+function addItem(id, n) { hero.inv[id] = (hero.inv[id] || 0) + (n || 1); }
+function hurt(n, type, quiet) {
+  if (type === 'poison' && hero.species === 'dwarf') n = Math.ceil(n / 2);
+  n = Math.max(0, n);
+  hero.hp = Math.max(0, hero.hp - n);
+  if (!quiet) say('dmg', 'You take ' + n + (type ? ' ' + type : '') + ' damage. (' + hero.hp + '/' + hero.hpMax + ' HP)');
+  return n;
+}
+function mend(n) {
+  const before = hero.hp;
+  hero.hp = clamp(hero.hp + n, 0, hero.hpMax);
+  return hero.hp - before;
+}
+function tickClock(n) {
+  const c = run.adv.clock;
+  c.at = clamp(c.at + n, 0, c.max);
+  if (c.at >= c.max && !flag('clock_done')) {
+    setFlag('clock_done');
+    say('sys', '⏳ ' + c.label + ': time has run out. Whatever you were racing against has come to pass.');
+    deed('Ran out the clock (' + c.label.toLowerCase() + ')');
+  }
+}
+function bumpAlert(n) {
+  const before = led().alert;
+  led().alert = clamp(before + n, 0, 5);
+  if (n > 0 && led().alert > before && led().alert >= 3 && before < 3) say('sys', '⚠ The defenders are awake. Alarm is spreading.');
+}
+
+/* ---------- effects ---------- */
+function applyFx(fx, opts) {
+  opts = opts || {};
+  if (!fx) return { combat: null };
+  const out = { combat: null, lines: [] };
+  const note = (t) => { out.lines.push(t); say('sys', t); };
+  if (fx.hp) {
+    if (fx.hp < 0) hurt(-fx.hp, fx.dmgType); else { const g = mend(fx.hp); if (g) note('You recover ' + g + ' HP.'); }
+  }
+  if (fx.gold) { hero.gold += fx.gold; led().gold += fx.gold; note('+' + fx.gold + ' gold.'); }
+  (fx.items || []).forEach((it) => { addItem(it, 1); note('You gain: ' + ITEMS[it].n + '.'); });
+  if (fx.gear) {
+    if (!hero.gear.includes(fx.gear)) {
+      hero.gear.push(fx.gear);
+      const g = GEAR.find((x) => x.id === fx.gear);
+      recalc(hero);
+      if (g && g.hp) hero.hp += g.hp;
+      note('Treasure: ' + g.n + ' (' + g.d + ').');
+    }
+  }
+  if (fx.flags) fx.flags.forEach((f) => setFlag(f));
+  if (fx.clue) { led().clues += fx.clue; note('🔍 Clue found (' + led().clues + ').'); }
+  if (fx.alert) bumpAlert(fx.alert);
+  if (fx.clock) tickClock(fx.clock);
+  if (fx.fortune) { const g = gainFortune(fx.fortune); if (g > 0) note('✦ +' + g + ' Fortune.'); }
+  if (fx.att) Object.keys(fx.att).forEach((id) => addAtt(id, fx.att[id]));
+  if (fx.deed) deed(fx.deed);
+  if (fx.cb) queueCb(fx.cb);
+  if (fx.rest) {
+    const frac = fx.rest;
+    const g = restHero(hero, frac);
+    note('You rest. +' + g + ' HP, and your abilities return.');
+  }
+  if (fx.legacy) hero.legacy.push(fx.legacy);
+  if (fx.ally === 'join') {
+    const a = run.adv.npcs.ally;
+    if (a && a.alive) { a.active = true; a.captive = false; a.met = true; note(a.name + ' joins you.'); }
+  }
+  if (fx.ally === 'leave') {
+    const a = run.adv.npcs.ally;
+    if (a) { a.active = false; a.captive = false; note(a.name + ' heads for safety.'); }
+  }
+  if (fx.ally === 'betray') {
+    const a = run.adv.npcs.ally;
+    if (a) { a.betrayer = true; a.active = false; }
+  }
+  if (fx.curse) { hero.hpMax = Math.max(8, hero.hpMax - fx.curse); hero.hp = Math.min(hero.hp, hero.hpMax); setFlag('cursed'); note('A creeping curse takes ' + fx.curse + ' max HP until you can be cleansed.'); }
+  if (fx.combat) out.combat = fx.combat;
+  if (fx.setEnd) run.ending = fx.setEnd;
+  return out;
+}
+
+/* ---------- callbacks (the story remembering you) ---------- */
+function callbackLine() {
+  const parts = [];
+  const a = led().alert;
+  if (a >= 4) parts.push('Shouts and the clatter of arms echo behind you. The defenders are hunting.');
+  else if (a === 3) parts.push('Somewhere, an alarm bell has been struck. You can feel the place tightening around you.');
+  const c = run.adv.clock;
+  if (c.at >= c.max - 2 && c.at < c.max) parts.push('The air hums. Whatever is coming is nearly here.');
+  const al = allyNow();
+  if (al && Math.random() < 0.5) parts.push(al.name + ' keeps close, ' + (al.att >= 2 ? 'steady and loyal.' : 'quiet, watching you.'));
+  if (led().cbs.length) parts.push(led().cbs.shift());
+  return parts.slice(0, 2).join(' ');
+}
+
+/* ---------- scene text ---------- */
+function themeOf() { return THEMES[run.adv.theme]; }
+function atmosphere() {
+  const T = themeOf();
+  return cap(pickR(T.sight)) + '. ' + pickR(T.sound) + ' The air smells of ' + pickR(T.smell) + '.';
+}
+function roomIntro(room) {
+  const T = themeOf();
+  const lead = pickR(TPL.arrive);
+  let body = '';
+  if (room.type === 'combat') {
+    const keys = room.enemies;
+    const m = MON[keys[0]];
+    const act = pickR(COMBAT_ACT[m.kind] || COMBAT_ACT.humanoid);
+    body = fill(pickR(TPL.lead.combat), { count: '', names: cap(enemyNames(keys)), act }).replace(/^\s+/, '').replace('  ', ' ');
+  } else if (room.type === 'social') {
+    const npc = npcOf(room.npc);
+    const role = SOCIAL_ROLES[room.role] || null;
+    if (room.role === 'returning') body = 'A familiar figure steps from the shadows: ' + npc.name + ', whom you met before. ' + (npc.from === 'villain_spared' ? 'They look wary, but not hostile.' : 'They look glad to see you.');
+    else body = fill(pickR(TPL.lead.social), { role: role.n, d: role.d, act: NPC_ACT[room.role] });
+  } else if (TPL.lead[room.type]) {
+    body = fill(pickR(TPL.lead[room.type]), { obj: room.obj || '', Obj: cap(room.obj || '') });
+  }
+  return lead + ' ' + atmosphere() + ' ' + body;
+}
+
+/* ---------- choices: built as plain data so the run can be saved ---------- */
+let cid = 0;
+function C(label, o) { return Object.assign({ id: 'c' + cid++, label }, o || {}); }
+function stat(skill, dc) { return skill ? { skill, dc } : {}; }
+
+function fitDC(room, skill, dc) {
+  if (room.good && room.good.includes(skill)) return dc - 2;
+  return dc;
+}
+function genericFx(room) {
+  /* default success/failure bundles used by choices and free actions */
+  const L = hero.level;
+  const dmg = (dice) => rollDice(dice[0], dice[1]).total;
+  switch (room.type) {
+    case 'trap': return { s: { clue: 0, deed: null }, f: { hp: -dmg(room.dice), dmgType: room.dmgType, alert: room.alarm ? 1 : 0 } };
+    case 'puzzle': return { s: { clue: 1, items: [pickR(['potion', 'oil', 'smoke', 'scroll'])] }, f: { clock: 1, hp: -Math.max(1, Math.floor(dmg(room.dice) / 2)), dmgType: 'force' } };
+    case 'hazard': return { s: { flags: ['cleared_' + room.id] }, f: { hp: -dmg(room.dice), dmgType: 'bludgeoning', clock: 1 } };
+    case 'lore': return { s: { clue: 1, fortune: hero.drive === 'curiosity' ? 1 : 0 }, f: { clock: 1 } };
+    case 'treasure': return { s: treasureFx(room), f: { alert: 1, hp: room.trapped ? -dmg(room.dice) : 0, dmgType: 'piercing' } };
+    default: return { s: {}, f: {} };
+  }
+}
+function treasureFx(room) {
+  const l = room.loot;
+  const fx = { gold: l.gold, items: l.items.slice(), gear: l.gear || undefined };
+  if (l.key) fx.flags = ['sidedoor'];
+  return fx;
+}
+function buildChoices(room) {
+  const L = hero.level;
+  const ch = [];
+  const add = (c) => { ch.push(c); return c; };
+  const T = room.type;
+  if (T === 'entrance') {
+    add(C('Study the entrance for another way in', Object.assign(stat('perception', room.dc), { alt: 'investigation', kind: 'check', style: 'careful', s: { flags: ['sidedoor'], deed: 'Found a side way in', clue: 0 }, f: { alert: 1 }, ok: 'You find a loose grate and a rusted door. Someone has used this before.', no: 'You scuff a stone loose, and the sound carries.' })));
+    add(C('Walk in openly', { kind: 'auto', drive: 'glory', s: { alert: 1, deed: 'Marched in through the front' }, ok: 'You step through the front door, boots loud. If anyone is listening, they know you are here.' }));
+    add(C('Slip in quietly', Object.assign(stat('stealth', room.dc), { kind: 'check', style: 'stealth', s: { flags: ['quiet_start'] }, f: { alert: 1 }, ok: 'You ghost through the entrance without a sound.', no: 'A loose stone clatters under your foot. Somewhere ahead, a voice goes quiet.' })));
+  } else if (T === 'combat') {
+    const strong = room.elite ? 0 : 0;
+    add(C('Attack!', { kind: 'combat', drive: hero.drive === 'vengeance' ? 'vengeance' : 'glory', fx: { combat: { enemies: room.enemies, surprise: null } } }));
+    add(C('Ambush them from the shadows', Object.assign(stat('stealth', room.ambushDC), { kind: 'check', style: 'stealth', s: { combat: { enemies: room.enemies, surprise: 'player' } }, f: { combat: { enemies: room.enemies, surprise: 'enemy' } }, ok: 'You choose your moment, and spring.', no: 'A scrape of your boot gives you away. They are already turning.' })));
+    if (room.intelligent) add(C('Talk your way past', Object.assign(stat(hero.cls === 'rogue' || hero.cls === 'wizard' ? 'deception' : 'persuasion', room.talkDC), { kind: 'check', style: 'charm', drive: 'curiosity', s: { clue: 1, flags: ['skipped_' + room.id], deed: 'Talked past a patrol', att: {} }, f: { combat: { enemies: room.enemies, surprise: 'enemy' } }, ok: 'They hesitate, then lower their weapons. You walk past, and learn a little along the way.', no: 'They do not believe a word. Steel clears leather.' })));
+    else if (room.undead) add(C('Drive them back with faith or will', Object.assign(stat('religion', room.talkDC), { kind: 'check', style: 'lore', s: { flags: ['skipped_' + room.id], deed: 'Turned aside the restless dead' }, f: { combat: { enemies: room.enemies, surprise: 'enemy' } }, ok: 'You speak a word of binding, and they fall back from you.', no: 'The dead do not care for your words.' })));
+    else add(C('Lure them off with a distraction', Object.assign(stat('survival', room.talkDC), { kind: 'check', style: 'careful', s: { flags: ['skipped_' + room.id], deed: 'Lured beasts away' }, f: { combat: { enemies: room.enemies, surprise: 'enemy' } }, ok: 'A thrown stone and a whistle send them chasing shadows.', no: 'They catch your scent and turn as one.' })));
+    add(C('Slip past without a fight', Object.assign(stat('stealth', room.slipDC + 1), { kind: 'check', style: 'stealth', s: { flags: ['skipped_' + room.id], deed: 'Slipped past a danger' }, f: { combat: { enemies: room.enemies, surprise: 'enemy' } }, ok: 'You find the edge of the shadows and follow it past.', no: 'Just as you are nearly through, one of them looks right at you.' })));
+  } else if (T === 'trap') {
+    const base = room.dc;
+    add(C('Disarm it carefully', Object.assign(stat('sleight', fitDC(room, 'sleight', base)), { kind: 'check', style: 'finesse', s: { items: [pickR(['oil', 'smoke'])], deed: 'Disarmed a trap' }, f: genericFx(room).f, ok: 'The mechanism clicks into rest. You salvage something useful from the parts.', no: 'The mechanism snaps.' })));
+    add(C('Study it, then pass safely', Object.assign(stat('investigation', fitDC(room, 'investigation', base)), { kind: 'check', style: 'careful', drive: 'curiosity', s: { clue: 1 }, f: genericFx(room).f, ok: 'You read the trap like a book and slip by.', no: 'You read it wrong.' })));
+    add(C('Dash through', Object.assign(stat('acrobatics', fitDC(room, 'acrobatics', base + 1)), { kind: 'check', style: 'bold', drive: 'glory', s: { deed: 'Dashed past a trap' }, f: genericFx(room).f, ok: 'You bound through before it can react.', no: 'You are half a heartbeat too slow.' })));
+    add(C('Force through the pain', { kind: 'auto', drive: 'glory', s: { hp: -Math.max(1, Math.floor(rollDice(room.dice[0], room.dice[1]).total / 2)), dmgType: room.dmgType, alert: 1 }, ok: 'You grit your teeth and take it on the chin. It is not pretty, but it is quick.' }));
+  } else if (T === 'puzzle') {
+    const g = genericFx(room);
+    add(C('Work the mechanism (' + SKILLS[room.skill].n + ')', Object.assign(stat(room.skill, room.dc), { kind: 'check', style: 'lore', drive: 'curiosity', s: g.s, f: g.f, ok: 'The last piece turns, and the way opens with a sigh of old air.', no: 'The mechanism snaps back, hard.' })));
+    add(C('Think it through (' + SKILLS[room.alt].n + ')', Object.assign(stat(room.alt, room.dc + 1), { kind: 'check', style: 'careful', s: g.s, f: g.f, ok: 'The solution comes to you sideways, and it fits.', no: 'You are sure you have got it. You have not.' })));
+    add(C('Break it open by force', Object.assign(stat('athletics', room.dc + 3), { kind: 'check', style: 'force', drive: 'glory', s: { flags: ['cleared_' + room.id], deed: 'Smashed through a puzzle' }, f: { hp: g.f.hp, dmgType: 'bludgeoning', alert: 1, clock: 1 }, ok: 'With a crack and a shudder, the barrier breaks.', no: 'The barrier holds, and the noise rolls through the halls.' })));
+  } else if (T === 'hazard') {
+    const g = genericFx(room);
+    add(C('Cross carefully (' + SKILLS[room.skill].n + ')', Object.assign(stat(room.skill, fitDC(room, room.skill, room.dc)), { kind: 'check', style: 'careful', s: g.s, f: g.f, ok: 'Slow and steady gets you across.', no: 'It does not go as planned.' })));
+    add(C('Find another way (' + SKILLS[room.alt].n + ')', Object.assign(stat(room.alt, fitDC(room, room.alt, room.dc + 1)), { kind: 'check', style: 'careful', s: { flags: ['cleared_' + room.id], clue: 1 }, f: g.f, ok: 'You find a safer path, and a hint of what lies ahead.', no: 'The path you chose was no safer.' })));
+    add(C('Charge across', Object.assign(stat('athletics', room.dc + 2), { kind: 'check', style: 'bold', drive: 'glory', s: { flags: ['cleared_' + room.id], deed: 'Charged across a hazard' }, f: g.f, ok: 'You hit the far side at a run.', no: 'You get about halfway before it all goes wrong.' })));
+  } else if (T === 'lore') {
+    const g = genericFx(room);
+    add(C('Study it closely', Object.assign(stat(room.good[0], room.dc), { kind: 'check', style: 'lore', drive: 'curiosity', s: g.s, f: g.f, ok: 'It tells you more than its makers intended.', no: 'It tells you nothing, and the minutes pass.' })));
+    add(C('Read between the lines (' + SKILLS[room.good[1] || 'insight'].n + ')', Object.assign(stat(room.good[1] || 'insight', room.dc + 1), { kind: 'check', style: 'careful', s: { clue: 1, flags: ['lore_deep'] }, f: { clock: 1 }, ok: 'You catch what was written between the lines.', no: 'You are chasing shadows.' })));
+    add(C('Pocket anything valuable and move on', { kind: 'auto', drive: 'greed', s: { gold: rollDice(1, 6).total * (L + 1) }, ok: 'You do not stay to read. A few coins and trinkets find their way into your pack.' }));
+  } else if (T === 'treasure') {
+    const base = room.dc;
+    const key = flag('silver_key');
+    add(C('Open it carefully', Object.assign(stat('sleight', fitDC(room, 'sleight', base)), { kind: 'check', style: 'finesse', drive: 'greed', s: treasureFx(room), f: genericFx(room).f, ok: 'The lid lifts with a satisfied sigh.', no: 'Something goes wrong.' })));
+    add(C('Check for traps first', Object.assign(stat('investigation', fitDC(room, 'investigation', base)), { kind: 'check', style: 'careful', s: Object.assign(treasureFx(room), { clue: 0 }), f: { clock: 1 }, ok: 'You spot the trigger and avoid it. Safe, but it took time.', no: 'You find nothing, and spend a long time finding it.' })));
+    add(C('Smash it open', Object.assign(stat('athletics', base + 1), { kind: 'check', style: 'force', s: Object.assign(treasureFx(room), { alert: 1 }), f: { alert: 1, hp: room.trapped ? genericFx(room).f.hp : 0, dmgType: 'piercing' }, ok: 'It splits with a crash that rings through the halls.', no: 'The lock holds and your hands sting.' })));
+    add(C('Leave it. Not worth the risk', { kind: 'auto', drive: 'mercy', s: {}, ok: 'You leave it where it lies, and the dungeon keeps its secret.' }));
+  } else if (T === 'rest') {
+    add(C('Rest properly (+60% HP, abilities return)', { kind: 'auto', s: { rest: 0.6, clock: 2 }, ok: 'You settle in and sleep fitfully. The dungeon waits.' }));
+    add(C('Rest lightly, keep watch', { kind: 'auto', s: { rest: 0.3, clock: 1, alert: -1 }, ok: 'You doze with one eye open. Not much, but enough.' }));
+    if (room.kind === 'shrine') add(C('Pray at the shrine', Object.assign(stat('religion', dcFor(L, 0)), { kind: 'check', style: 'lore', s: { fortune: 2, rest: 0.2 }, f: { clock: 1 }, ok: 'Something old and kind answers. You feel lucky, and a little less alone.', no: 'Silence answers. It is a very large silence.' })));
+    else add(C('Tend wounds and tinker with gear', Object.assign(stat('medicine', dcFor(L, 0)), { kind: 'check', style: 'careful', s: { rest: 0.5, clock: 1 }, f: { rest: 0.2, clock: 1 }, ok: 'You patch yourself up properly.', no: 'You do what you can.' })));
+    add(C('Press on without resting', { kind: 'auto', s: {}, ok: 'You do not stop. There is not time.' }));
+  } else if (T === 'social') {
+    buildSocial(room, ch, add);
+  } else if (T === 'twist') {
+    buildTwist(room, ch, add);
+  } else if (T === 'boss') {
+    buildBoss(room, ch, add);
+  }
+  return ch;
+}
+
+function buildSocial(room, ch, add) {
+  const npc = npcOf(room.npc);
+  const L = hero.level;
+  const id = npc.id;
+  const role = room.role;
+  if (role === 'prisoner') {
+    add(C('Free ' + npc.name + ' quietly (Sleight of Hand)', Object.assign(stat('sleight', room.dcHelp), { kind: 'check', style: 'finesse', drive: 'mercy', s: { att: { ally: 2 }, ally: 'join', deed: 'Freed ' + npc.name }, f: { att: { ally: 1 }, alert: 1, ally: 'join', deed: 'Freed ' + npc.name + ' (loudly)' }, ok: 'The ropes fall away. ' + npc.name + ' rubs wrists and grins at you.', no: 'You saw clumsily at the ropes, and the noise carries. But ' + npc.name + ' is free.' })));
+    add(C('Cut ' + npc.name + ' loose and ask what ' + npc.pr.o + ' knows', Object.assign(stat('persuasion', room.dcTalk), { kind: 'check', style: 'charm', drive: 'curiosity', s: { att: { ally: 2 }, ally: 'join', clue: 1, deed: 'Freed ' + npc.name + ' and learned the layout' }, f: { att: { ally: 1 }, ally: 'join', deed: 'Freed ' + npc.name }, ok: npc.name + ' tells you what ' + npc.pr.o + ' saw, and which doors to avoid.', no: npc.name + ' is too shaken to talk, but is grateful.' })));
+    add(C('Tell ' + npc.name + ' to wait here, safe', { kind: 'auto', drive: 'mercy', s: { att: { ally: 1 }, flags: ['ally_left_safe'], deed: 'Freed ' + npc.name + ' and sent ' + npc.pr.o + ' to safety' }, fx: { ally: 'leave' }, ok: 'You free the captive and send ' + npc.pr.o + ' to the exit. ' + npc.name + ' wants to come but does not argue.' }));
+    ch.forEach((c) => { if (c.s && c.s.ally === 'join') { /* ally joins */ } });
+    add(C('Leave ' + npc.name + ' for now. You cannot spare the time', { kind: 'auto', drive: 'greed', s: { att: { ally: -1 }, flags: ['ally_abandoned'], deed: 'Left ' + npc.name + ' bound', cb: npc.name + ' will remember you walked away.' }, ok: 'You turn from the pleading eyes and press deeper.' }));
+    return;
+  }
+  const dcH = room.dcHelp, dcT = room.dcTalk, dcL = room.dcLie, dcI = room.dcThreat;
+  const nm = npc.name;
+  const help = { prisoner: 'Free', deserter: 'Reassure', scholar: 'Lift the shelf off', rival: 'Offer to share the spoils', trader: 'Buy supplies', returning: 'Ask for help' }[role] || 'Help';
+  if (role === 'returning') {
+    add(C('Ask ' + nm + ' for help', Object.assign(stat('persuasion', dcH - 2), { kind: 'check', style: 'charm', drive: 'mercy', s: { att: { ret: 1 }, clue: 2, items: ['potion'], deed: 'Allied with ' + nm + ' again' }, f: { att: { ret: -1 }, clue: 1 }, ok: nm + ' grins grimly. "You did right by me. Here is what I know."', no: nm + ' hesitates. "I am sorry. Some debts do not wash clean."' })));
+    add(C('Ask ' + nm + ' to fight beside you', Object.assign(stat('persuasion', dcT), { kind: 'check', style: 'charm', s: { att: { ret: 1 }, ally: 'join_ret', deed: nm + ' fights beside you' }, f: { att: { ret: 0 } }, ok: nm + ' nods once and falls in at your side.', no: nm + ' shakes their head. "Not this time."' })));
+    add(C('Hear what ' + nm + ' has seen', { kind: 'auto', drive: 'curiosity', s: { clue: 1, att: { ret: 1 } }, ok: nm + ' lowers their voice and tells you what they saw.' }));
+    add(C('Turn them away', { kind: 'auto', s: { att: { ret: -1 }, cb: nm + ' watches you go.' }, ok: 'You tell them to leave, and they do.' }));
+    return;
+  }
+  add(C(help + ' (' + (role === 'trader' ? 'costs gold' : 'Medicine/Persuasion') + ')', role === 'trader'
+    ? { kind: 'trade', drive: 'greed', cost: 20 + 5 * L, s: { att: { [id]: 1 }, items: ['potion', 'potion'], deed: 'Traded with ' + nm }, ok: nm + ' counts your coin and hands over two potions with a wink.', no: 'You do not have the coin.' }
+    : Object.assign(stat(role === 'scholar' ? 'athletics' : 'persuasion', dcH), { kind: 'check', style: 'charm', drive: 'mercy', s: { att: { [id]: 2 }, clue: 1, items: ['potion'], deed: 'Helped ' + nm }, f: { att: { [id]: 0 } }, ok: nm + ' is grateful and shares what they know.', no: 'Your help is clumsy. They thank you anyway.' })));
+  add(C('Ask what ' + nm + ' knows', Object.assign(stat('insight', dcT), { kind: 'check', style: 'careful', drive: 'curiosity', s: { clue: 1, att: { [id]: 1 } }, f: { att: { [id]: -1 } }, ok: 'You ask the right questions, and the answers come.', no: nm + ' stops talking, wary.' })));
+  add(C('Threaten ' + nm + ' for information', Object.assign(stat('intimidation', dcI), { kind: 'check', style: 'force', drive: 'vengeance', s: { clue: 2, att: { [id]: -2 }, alert: 1 }, f: { att: { [id]: -2 }, alert: 1 }, ok: nm + ' pales and talks fast.', no: nm + ' scoffs, then shouts. That carried.' })));
+  if (role === 'rival' || role === 'deserter') add(C('Cut them down', { kind: 'combat', drive: 'vengeance', fx: { combat: { enemies: [role === 'rival' ? 'bandit' : 'cultist'], surprise: 'player' }, att: { [id]: -3 }, deed: 'Struck down ' + nm, flags: ['killed_' + id] }, ok: 'You strike without warning.' }));
+  add(C('Leave them be', { kind: 'auto', drive: 'mercy', s: { att: { [id]: 0 } }, ok: 'You nod and move on.' }));
+}
+
+const TWIST_TEXT = {
+  ally_betrays: (a) => 'You catch a low voice up ahead, and stop. It is ' + a.name + ', talking with a hooded figure. "...the hero walks where we want," ' + a.name + ' murmurs. "Soon."',
+  patron_lied: (adv) => 'A crumpled letter lies on a dead courier. It bears ' + adv.patron.name + "'s seal. It is addressed to " + adv.villain.name + ": \"Do not fail me. When it is done, I will have what the village never could.\"",
+  villain_sympathetic: (adv) => 'A ledger on a table lays it bare. ' + adv.villain.name + ' ' + adv.villain.motive + ', and in the margins of these pages there is no cruelty, only grief and desperation.',
+  mcguffin_cursed: (adv) => 'You have found ' + adv.mcg + '. It is warm in your hand, too warm. Faint whispers rise from it, offering you things. You understand now why the villain wanted it.',
+};
+function buildTwist(room, ch, add) {
+  const adv = run.adv;
+  const t = adv.twist.type;
+  const L = hero.level;
+  const a = adv.npcs.ally;
+  const dc = dcFor(L, 1);
+  if (t === 'ally_betrays' && a) {
+    add(C('Confront ' + a.name + ' now', Object.assign(stat('insight', dc), { alt: 'persuasion', kind: 'check', style: 'charm', drive: 'vengeance', s: { att: { ally: 1 }, flags: ['twist_confronted', 'ally_redeemed'], clue: 1, deed: 'Confronted ' + a.name + ' and turned ' + a.pr.o + ' back' }, f: { flags: ['twist_confronted'], ally: 'betray', deed: a.name + ' fled to the enemy', cb: a.name + ' will be waiting for you.' }, ok: a.name + ' breaks down. "They have my family. I did not know how else." You offer another way, and they take it.', no: a.name + ' bolts into the dark.' })));
+    add(C('Say nothing, and keep watching', { kind: 'auto', drive: 'curiosity', s: { flags: ['twist_watching'], clue: 1, att: { ally: -1 }, deed: 'Kept quiet about ' + a.name + "'s secret" }, ok: 'You step back and let them finish. You know now. They do not know that you know.' }));
+    add(C('Strike first', { kind: 'combat', drive: 'vengeance', fx: { combat: { enemies: ['traitor'], surprise: 'player' }, ally: 'betray', flags: ['twist_confronted', 'ally_slain'], deed: 'Killed ' + a.name + ' for betraying you' }, ok: 'You act before thought catches up.' }));
+  } else if (t === 'patron_lied') {
+    add(C('Decide to see this through for the village anyway', { kind: 'auto', drive: 'glory', s: { flags: ['sided_patron'], deed: 'Stayed loyal to ' + adv.patron.name + ' despite the letter' }, ok: 'You fold the letter into your pack. Whatever ' + adv.patron.name + ' wants, someone else is more dangerous here.' }));
+    add(C('Decide to hear ' + adv.villain.name + ' out', { kind: 'auto', drive: 'curiosity', s: { flags: ['sided_villain', 'parley_open'], clue: 1, deed: 'Doubted ' + adv.patron.name }, ok: 'You tuck the letter away. You have questions, and the one who can answer them is at the end of this hall.' }));
+    add(C('Study the letter closely', Object.assign(stat('investigation', dc), { kind: 'check', style: 'lore', drive: 'curiosity', s: { clue: 2, flags: ['patron_truth'], deed: 'Uncovered ' + adv.patron.name + "'s plan" }, f: { clock: 1 }, ok: 'There is more here: a second hand, a hidden line. You now know exactly what ' + adv.patron.name + ' means to do.', no: 'The ink has run, and you cannot make out the rest.' })));
+  } else if (t === 'villain_sympathetic') {
+    add(C('Seek a parley with ' + adv.villain.name, { kind: 'auto', drive: 'mercy', s: { flags: ['parley_open', 'sided_villain'], clue: 1, deed: 'Resolved to talk to ' + adv.villain.name }, ok: 'You close the ledger, gently. There may be another way to end this.' }));
+    add(C('Harden yourself. It does not change what they did', { kind: 'auto', drive: 'vengeance', s: { flags: ['ruthless'], fortune: 1, deed: 'Vowed to end ' + adv.villain.name }, ok: 'Sorrow does not undo a single grave. You set your jaw.' }));
+    add(C('Dig deeper into their story', Object.assign(stat('history', dc), { alt: 'investigation', kind: 'check', style: 'lore', drive: 'curiosity', s: { clue: 2, flags: ['villain_truth'], deed: 'Learned the truth about ' + adv.villain.name }, f: { clock: 1 }, ok: 'The pieces come together. You understand them now, and what they truly need.', no: 'The ledger is a tangle of numbers and names, and you cannot follow it.' })));
+  } else if (t === 'mcguffin_cursed') {
+    add(C('Destroy it', Object.assign(stat('arcana', dc), { alt: 'religion', kind: 'check', style: 'lore', drive: 'mercy', s: { flags: ['relic_destroyed'], clue: 1, deed: 'Destroyed ' + adv.mcg }, f: { curse: 2, flags: ['relic_destroyed'], deed: 'Destroyed ' + adv.mcg + ' at a cost' }, ok: 'The relic cracks, and the whispers shriek and fade.', no: 'The relic dies, but not quietly. Something lashes at you as it goes.' })));
+    add(C('Keep it, and use it', { kind: 'auto', drive: 'greed', s: { flags: ['relic_kept'], curse: 2, fortune: 2, deed: 'Kept ' + adv.mcg }, ok: 'Warm power flows into your hands. It will cost you, later.' }));
+    add(C('Seal it in cloth and lead', Object.assign(stat('sleight', dc), { kind: 'check', style: 'finesse', s: { flags: ['relic_sealed'], deed: 'Sealed away ' + adv.mcg }, f: { hp: -Math.max(2, L + 1), dmgType: 'necrotic', flags: ['relic_sealed'] }, ok: 'You wrap it tight and bind it with lead-thread. It quiets.', no: 'It bites at your fingers as you bind it.' })));
+  }
+}
+
+function buildBoss(room, ch, add) {
+  const adv = run.adv;
+  const L = hero.level;
+  const dcB = dcFor(L, 1);
+  const boss = BOSS[adv.villain.bossKey];
+  const nm = adv.villain.name;
+  const parleyOpen = flag('parley_open') || led().clues >= 3;
+  add(C('Face them. Draw steel', { kind: 'combat', drive: 'glory', fx: { combat: { boss: true, surprise: null } }, ok: 'You step into the light.' }));
+  if (flag('sidedoor')) add(C('Come in by the side door, strike unseen', Object.assign(stat('stealth', dcB - 1), { kind: 'check', style: 'stealth', s: { combat: { boss: true, surprise: 'player' }, deed: 'Ambushed ' + nm }, f: { combat: { boss: true, surprise: null } }, ok: 'The side door yields without a sound. You are inside, and no one has seen you.', no: 'The hinge shrieks. You are in, but so is the alarm.' })));
+  add(C('Call out and parley', Object.assign(stat('persuasion', parleyOpen ? dcB - 1 : dcB + 3), { alt: 'insight', kind: 'check', style: 'charm', drive: 'mercy', s: { setEnd: 'parley', flags: ['parley_won'], deed: 'Talked ' + nm + ' down' }, f: { combat: { boss: true, surprise: 'enemy' }, deed: 'Parley with ' + nm + ' failed' }, ok: parleyOpen ? 'You lay out what you know. ' + nm + ' hesitates, and the weapon lowers.' : 'It is a long shot, and you have only words. They are enough.', no: nm + ' laughs once, bitterly. "Too late for words."' })));
+  if (led().clues >= 2) add(C('Strike at their weak point', Object.assign(stat('arcana', dcB), { alt: 'investigation', kind: 'check', style: 'lore', drive: 'curiosity', s: { combat: { boss: true, surprise: null, weak: true }, deed: 'Exploited ' + nm + "'s weakness" }, f: { combat: { boss: true, surprise: null } }, ok: 'Everything you learned along the way converges on one mark. You know where it hurts.', no: 'You try to apply what you learned, but the pieces do not fit.' })));
+  if (adv.hook === 'recover' && !flag('relic_destroyed')) add(C('Grab ' + adv.mcg + ' and run', Object.assign(stat('sleight', dcB + 1), { kind: 'check', style: 'finesse', drive: 'greed', s: { setEnd: 'snatch', flags: ['relic_taken'], deed: 'Snatched ' + adv.mcg + ' from under ' + nm + "'s nose" }, f: { combat: { boss: true, surprise: 'enemy' } }, ok: 'A distraction, a quick hand, and the prize is yours.', no: 'Your fingers close on the prize, and ' + nm + ' catches your wrist.' })));
+}
+
+/* ---------- run lifecycle, rooms, choices ---------- */
+function factsFor(kind, draft, extra) {
+  const adv = run.adv;
+  return Object.assign({
+    kind, draft, hero: hero.name + ', ' + SPECIES[hero.species].n + ' ' + CLASSES[hero.cls].n,
+    setting: themeOf().n + ' (' + adv.site + ')', story: adv.title, backstory: hero.story || '',
+    recent: led().deeds.slice(-2),
+  }, extra || {});
+}
+
+function beginRun(h, seed, themeKey) {
+  hero = h;
+  readyHero(h);
+  const adv = generateAdventure(seed, h, { theme: themeKey, difficulty: S.settings.difficulty });
+  adv.legacyUsed.forEach((l) => {
+    const i = h.legacy.findIndex((x) => x.t === l.t && x.name === l.name);
+    if (i >= 0) h.legacy.splice(i, 1);
+  });
+  run = S.run = {
+    v: 1, heroId: h.id, adv, slot: 0, phase: 'doors', roomId: null, cur: null,
+    led: { flags: {}, clues: 0, alert: 0, gold: 0, deeds: [], cbs: [], kills: 0, spared: 0, visited: [] },
+    log: [], combat: null, ending: null, pending: null, epilogue: null,
+  };
+  say('head', adv.titleFull);
+  narr(adv.pitch, factsFor('hook', adv.pitch));
+  say('sys', 'Your task: ' + adv.goal);
+  const a = adv.npcs.ally;
+  if (a && a.active) say('sys', a.name + ', a ' + a.role + ' sent along by ' + adv.patron.name + ', travels with you.');
+  if (adv.legacyUsed.length) {
+    const l = adv.legacyUsed[0];
+    const t = { ally_saved: l.name + ' has not forgotten what you did.', villain_slain: 'This is not the first dark errand like this. The one you slew left kin behind.', villain_spared: 'The mercy you showed ' + l.name + ' has not been forgotten.', npc_helped: l.name + ' remembers you kindly.' }[l.t];
+    if (t) say('sys', '↪ ' + t);
+  }
+  save();
+  enterSlot(0);
+}
+
+function enterSlot(i) {
+  run.slot = i;
+  const s = run.adv.slots[i];
+  if (s.opts.length === 1) { enterRoom(s.opts[0]); return; }
+  run.phase = 'doors';
+  run.cur = null;
+  say('head', 'Two ways onward');
+  changed();
+}
+
+function doorInfo(id) {
+  const room = run.adv.rooms[id];
+  const passive = 10 + skillMod(hero, 'perception');
+  const exact = passive >= 13 || flag('scouted');
+  return { id, label: cap(room.name), hint: cap(room.hint), exact, kind: exact ? TYPE_LABEL[room.type] || '' : '' };
+}
+function chooseDoor(id) {
+  const info = doorInfo(id);
+  say('choice', '→ ' + info.label);
+  enterRoom(id);
+}
+
+function bossPrep() {
+  const adv = run.adv;
+  const lines = [], mods = { extra: [], hpMul: 1, atk: 0, dmg: 0, weak: false, allyWith: false };
+  const bad = [], good = [];
+  if (led().alert >= 4) { mods.extra.push(adv.villain.bossKey === 'necromancer' ? 'skeleton' : MON_FOR_THEME(adv.theme)); mods.extra.push(MON_FOR_THEME(adv.theme)); bad.push('The defenders have been warned. Guards stand ready beside ' + adv.villain.name + '.'); }
+  else if (led().alert === 3) { mods.extra.push(MON_FOR_THEME(adv.theme)); bad.push('One guard has been called to the lair.'); }
+  if (flag('clock_done')) { mods.hpMul = 1.25; mods.dmg = 2; bad.push('It is too late. ' + adv.clock_text + ' ' + adv.villain.name + ' has been empowered.'); }
+  if (led().clues >= 3) { mods.weak = true; good.push('Everything you learned shows you where ' + adv.villain.name + ' is vulnerable.'); }
+  else if (led().clues >= 2) good.push('You have a clue to ' + adv.villain.name + "'s weakness, if you can use it.");
+  if (flag('sidedoor')) good.push('You have a way in by the side door.');
+  const a = adv.npcs.ally;
+  if (a && a.alive && a.active) { if (a.att >= 2) good.push(a.name + ' stands beside you, steady.'); }
+  Object.keys(adv.npcs).forEach((id) => {
+    const n = adv.npcs[id];
+    if (id === 'ally') return;
+    if (!n.met || !n.alive) return;
+    if (n.att >= 2) { mods.weak = true; good.push(n.name + ' has slipped ahead and sown confusion in the lair.'); }
+    else if (n.att <= -2) { mods.extra.push(MON_FOR_THEME(adv.theme)); bad.push(n.name + ' ran ahead to warn ' + adv.villain.name + '.'); }
+  });
+  /* ally betrayal */
+  if (adv.twist.type === 'ally_betrays' && a && a.alive && !flag('ally_redeemed') && !flag('ally_slain') && (a.betrayer || a.att < 3)) {
+    a.betrayer = true; a.active = false;
+    mods.traitor = true;
+    bad.push(a.name + ' steps out from behind ' + adv.villain.name + ", weapon drawn. \"Nothing personal.\"");
+  }
+  return { lines: bad.concat(good), mods };
+}
+function MON_FOR_THEME(themeKey) {
+  const T = THEMES[themeKey];
+  const pool = T.mon[tierFor(hero.level, { chance: () => false })];
+  return pool.slice().sort((a, b) => MON[a].thr - MON[b].thr)[0];
+}
+
+function enterRoom(id) {
+  const adv = run.adv;
+  const room = adv.rooms[id];
+  run.roomId = id;
+  run.phase = 'room';
+  adv.clock_text = adv.clock_text || ('The ' + adv.clock.label.toLowerCase() + ' came and went.');
+  if (room.type !== 'entrance') tickClock(1);
+  led().visited.push(id);
+  const cb = callbackLine();
+  let text, kind = 'room';
+  if (room.type === 'entrance') {
+    text = 'You stand before ' + adv.site + '. ' + atmosphere() + ' ' + (cb || '') + ' There is no one to ask the way. You will have to choose how you go in.';
+    say('head', 'The Threshold');
+  } else if (room.type === 'twist') {
+    adv.twist.revealed = true;
+    const t = adv.twist.type;
+    const body = t === 'ally_betrays' ? TWIST_TEXT[t](adv.npcs.ally) : TWIST_TEXT[t](adv);
+    text = pickR(TPL.arrive) + ' ' + atmosphere() + ' ' + body;
+    say('head', 'A turning point');
+    kind = 'twist';
+  } else if (room.type === 'boss') {
+    const prep = bossPrep();
+    run.cur = { prep };
+    const boss = BOSS[adv.villain.bossKey];
+    text = pickR(TPL.arrive) + ' ' + atmosphere() + ' At last, the ' + room.name + '. ' + adv.villain.name + ', ' + an(boss.n.toLowerCase()) + ', waits.';
+    say('head', 'The ' + cap(room.name));
+    kind = 'boss';
+  } else {
+    text = roomIntro(room);
+    if (cb) text += ' ' + cb;
+    say('head', cap(room.name) + (room.type === 'social' ? ' — ' + (npcOf(room.npc).name) : ''));
+  }
+  const keep = run.cur && run.cur.prep ? run.cur.prep : null;
+  narr(text, factsFor(kind, text));
+  if (keep) keep.lines.forEach((l) => say('sys', '⚡ ' + l));
+  if (room.type === 'social') npcOf(room.npc).met = true;
+  run.cur = { prep: keep, choices: buildChoices(room), acts: 0, resolved: false, driveGiven: false, used: [] };
+  save();
+  changed();
+}
+
+/* ---------- picking a choice ---------- */
+function curChoice(cidv) { return run.cur && run.cur.choices.find((x) => x.id === cidv); }
+function pickChoice(cidv) {
+  if (!run.cur || (run.phase !== 'room')) return;
+  const c = curChoice(cidv);
+  if (!c) return;
+  if (c.id === 'continue') { continueDeeper(); return; }
+  if (c.id === 'search') { doSearch(); return; }
+  if (c.kind === 'end') { endChoice(c); return; }
+  say('choice', c.label);
+  if (c.drive && hero.drive === c.drive && !run.cur.driveGiven) {
+    run.cur.driveGiven = true;
+    if (gainFortune(1) > 0) say('sys', '✦ Your drive stirs (' + DRIVES[c.drive].n + '): +1 Fortune.');
+  }
+  if (c.kind === 'trade') {
+    if (hero.gold < c.cost) { say('sys', 'You cannot afford that (' + c.cost + ' gold).'); changed(); return; }
+    hero.gold -= c.cost;
+    say('sys', '−' + c.cost + ' gold.');
+  }
+  if (c.kind === 'check') {
+    const res = doCheck(c.skill, c.dc, c.mode || 0);
+    say('roll', rollChip(res), { ok: res.ok });
+    if (!res.ok && hero.fortune > 0 && !res.crit) {
+      run.phase = 'check';
+      run.pending = { cid: c.id, res, label: c.label };
+      changed();
+      return;
+    }
+    finishChoice(c, res.ok, res);
+    return;
+  }
+  finishChoice(c, true, null);
+}
+function spendFortune() {
+  if (run.phase !== 'check' || !run.pending || hero.fortune < 1) return;
+  const c = curChoice(run.pending.cid);
+  hero.fortune--;
+  say('sys', '✦ You spend a point of Fortune and roll again.');
+  const res = doCheck(c.skill, c.dc, c.mode || 0);
+  say('roll', rollChip(res), { ok: res.ok });
+  run.pending = null;
+  run.phase = 'room';
+  finishChoice(c, res.ok, res);
+}
+function acceptResult() {
+  if (run.phase !== 'check' || !run.pending) return;
+  const c = curChoice(run.pending.cid);
+  const res = run.pending.res;
+  run.pending = null;
+  run.phase = 'room';
+  finishChoice(c, res.ok, res);
+}
+
+function finishChoice(c, ok, res) {
+  const room = run.adv.rooms[run.roomId];
+  const cur = run.cur;
+  cur.acts++;
+  cur.used.push(c.id);
+  let text = ok ? c.ok : c.no;
+  if (!text) text = fill(pickR((ok ? TPL.succ : TPL.fail)[c.skill] || ['It is done.']), { obj: room.obj || 'it', Obj: cap(room.obj || 'it') });
+  if (res && res.crit) { text += ' A flawless effort.'; if (gainFortune(1) > 0) text += ' (+1 Fortune)'; }
+  if (res && res.fumble) text += ' Bad luck.';
+  const facts = factsFor('outcome', text, { action: c.label, result: ok ? 'success' : 'failure', place: room.name });
+  narr(text, facts);
+  if (res && res.fumble) { tickClock(1); }
+  let out = { combat: null };
+  const fxs = c.kind === 'combat' ? [c.fx] : c.kind === 'check' ? [ok ? c.s : c.f] : [c.s, c.fx];
+  fxs.forEach((fx) => {
+    if (!fx) return;
+    const o = applyFx(fx);
+    if (o.combat) out.combat = o.combat;
+    if (fx.ally === 'join_ret') promoteReturning();
+  });
+  if (room.type === 'boss' && run.ending === 'parley') { finishAdventure('parley'); return; }
+  if (room.type === 'boss' && run.ending === 'snatch') { finishAdventure('snatch'); return; }
+  if (hero.hp <= 0 && !out.combat) { handleDown(); return; }
+  if (out.combat) {
+    out.combat.roomId = room.id;
+    startCombat(out.combat, room);
+    return;
+  }
+  settleRoom();
+}
+function promoteReturning() {
+  const adv = run.adv;
+  const r = adv.npcs.ret;
+  if (!r || adv.npcs.ally) return;
+  adv.allyId = 'ally';
+  adv.npcs.ally = { id: 'ally', name: r.name, role: 'sellsword', pr: { o: 'them', p: 'their' }, att: 1, met: true, alive: true, active: true, captive: false, betrayer: false, hp: 10 + 3 * hero.level, hpMax: 10 + 3 * hero.level };
+  say('sys', r.name + ' joins you.');
+}
+
+/* after any choice: work out what the player may do next in this room */
+function settleRoom() {
+  const room = run.adv.rooms[run.roomId];
+  const cur = run.cur;
+  const left = [];
+  if (room.type === 'social' && cur.acts < 2) {
+    cur.choices.forEach((c) => { if (!cur.used.includes(c.id) && c.kind !== 'combat') left.push(c); });
+  }
+  cur.resolved = true;
+  cur.choices = left.concat([C('Continue deeper', { id: 'continue', kind: 'next' })]);
+  save();
+  changed();
+}
+function doSearch() {
+  const room = run.adv.rooms[run.roomId];
+  const cur = run.cur;
+  say('choice', 'Search the area');
+  cur.searched = true;
+  const res = doCheck('investigation', room.searchDC || dcFor(hero.level, 0), 0);
+  say('roll', rollChip(res), { ok: res.ok });
+  if (res.ok) {
+    const g = rollDice(1, 6).total * (hero.level + 1);
+    narr('Behind a fallen shelf and under a loose stone, you find what the previous owners left behind.', factsFor('search', 'You search the area and find hidden valuables.'));
+    applyFx({ gold: g, clue: dRand.f() < 0.5 ? 1 : 0, items: dRand.f() < 0.35 ? [pickR(['potion', 'oil', 'scroll', 'smoke'])] : [] });
+  } else {
+    say('sys', 'You find nothing of value.');
+  }
+  cur.choices = cur.choices.filter((c) => c.id !== 'search');
+  save();
+  changed();
+}
+function continueDeeper() {
+  say('choice', 'Continue deeper');
+  const next = run.slot + 1;
+  if (next >= run.adv.slots.length) { finishAdventure(run.ending || 'victory'); return; }
+  enterSlot(next);
+}
+
+/* ---------- combat ---------- */
+function rawD20(mode) {
+  const a = d(20), b = mode ? d(20) : null;
+  if (!mode) return { r: a, all: [a] };
+  return { r: mode > 0 ? Math.max(a, b) : Math.min(a, b), all: [a, b] };
+}
+function modeOf(adv, dis) { return adv && !dis ? 1 : dis && !adv ? -1 : 0; }
+
+function makeMon(key) {
+  const m = MON[key];
+  const e = { key, n: m.n, role: m.n, ac: m.ac, hp: m.hp, max: m.hp, atk: m.atk, dmg: m.dmg.slice(), multi: m.multi || 1, fl: m.fl.slice(), kind: m.kind, thr: m.thr, cond: {}, boss: false };
+  if (key === 'traitor' && run.adv.npcs.ally) e.n = run.adv.npcs.ally.name;
+  return e;
+}
+function makeBoss(key, mods) {
+  const b = BOSS[key];
+  const L = hero.level;
+  const dm = { story: 0.8, standard: 1, grim: 1.2 }[run.adv.difficulty] || 1;
+  const hp = Math.max(16, Math.round(b.hp * (0.35 + 0.13 * L) * (mods.hpMul || 1) * dm));
+  let ac = b.ac + Math.floor((L - 3) / 2) - 1 - (mods.weak ? 2 : 0);
+  const bonus = b.dmg[2] - 1 + Math.floor((L - 3) / 2) + (mods.dmg || 0) + (run.adv.villain.kin ? 1 : 0);
+  return {
+    key, n: run.adv.villain.name, role: b.n, ac: Math.max(9, ac), hp: mods.weak ? Math.round(hp * 0.85) : hp, max: hp, atk: Math.max(3, b.atk + (L - 3)),
+    dmg: [b.dmg[0], b.dmg[1], Math.max(0, bonus)], multi: L >= 4 ? (b.multi || 1) : 1, fl: b.fl.slice(), kind: b.kind, thr: 10, cond: {}, boss: true,
+    sp: b.sp ? Object.assign({}, b.sp, b.sp.k === 'summon' ? { n: L >= 4 ? b.sp.n : 1 } : { dice: [L >= 3 ? b.sp.dice[0] : 2, b.sp.dice[1]] }) : null,
+  };
+}
+function livingEnemies() { return run.combat.enemies.filter((e) => e.hp > 0); }
+function enemyById(id) { return run.combat.enemies.find((e) => e.id === id && e.hp > 0); }
+
+function startCombat(spec, room) {
+  const adv = run.adv;
+  const enemies = [];
+  const cb = run.combat = {
+    enemies, n: 0, round: 1, boss: !!spec.boss, roomId: room ? room.id : run.roomId, acted: { action: false, bonus: false }, menu: null,
+    pc: { poisoned: 0, restrained: false, frightened: 0, shield: false, defending: false, hidden: false, firstAdv: spec.surprise === 'player' || !!spec.weak, sneakUsed: false },
+    skip: spec.surprise === 'player', weak: !!spec.weak, startThr: 0, allyHealed: false,
+  };
+  const add = (e) => { e.id = 'e' + cb.n++; enemies.push(e); cb.startThr += e.thr || 3; return e; };
+  if (spec.boss) {
+    const prep = run.cur && run.cur.prep ? run.cur.prep : bossPrep();
+    const mods = Object.assign({}, prep.mods, spec.weak ? { weak: true } : {});
+    add(makeBoss(adv.villain.bossKey, mods));
+    (mods.extra || []).forEach((k) => add(makeMon(k)));
+    if (mods.traitor && adv.npcs.ally) { const t = add(makeMon('traitor')); t.traitor = true; if (flag('twist_watching')) t.hp = Math.ceil(t.hp * 0.6); }
+  } else spec.enemies.forEach((k) => add(makeMon(k)));
+  run.phase = 'combat';
+  say('head', '⚔ Combat');
+  say('sys', 'Foes: ' + enemies.map((e) => e.n + ' (AC ' + e.ac + ', ' + e.hp + ' HP)').join(', ') + '.');
+  narr(spec.boss ? 'Steel and spell-light fill the chamber. There is no more room for words.' : 'The moment breaks. Weapons are drawn.', factsFor('combat_start', 'Combat begins against ' + enemyNames(enemies.map((e) => e.key)) + '.', { enemies: enemyNames(enemies.map((e) => e.key)) }));
+  let first = 'player';
+  if (spec.surprise === 'enemy') { first = 'enemy'; say('sys', 'They strike first!'); }
+  else if (spec.surprise === 'player') say('sys', 'You have the drop on them. You act first, with advantage.');
+  else {
+    const mine = d(20) + aMod(hero, 'dex');
+    const theirs = d(20) + 1 + (led().alert >= 4 ? 3 : 0);
+    first = mine >= theirs ? 'player' : 'enemy';
+    say('roll', 'Initiative: ' + mine + ' vs ' + theirs + ' — ' + (first === 'player' ? 'you go first' : 'they go first'), { ok: first === 'player' });
+  }
+  if (cb.weak) say('sys', 'You know where it is weak: your first strike has advantage.');
+  if (first === 'enemy') {
+    enemyPhase();
+    if (!run.combat) return;
+    endRound(true);
+  }
+  save();
+  changed();
+}
+
+function dmgEnemy(e, amt, label) {
+  e.hp -= amt;
+  if (e.cond.asleep) e.cond.asleep = 0;
+  if (e.hp <= 0) killEnemy(e);
+}
+function killEnemy(e) {
+  const cb = run.combat;
+  say('sys', fill(pickR(TPL.die), { T: cap(e.n) }));
+  led().kills++;
+  if (e.traitor) { setFlag('ally_slain'); const a = run.adv.npcs.ally; if (a) a.alive = false; deed('Killed the traitor ' + e.n); }
+  if (e.boss) {
+    cb.enemies.forEach((x) => { if (x !== e && x.hp > 0) { x.hp = 0; } });
+  }
+  cb.enemies = cb.enemies.filter((x) => x.hp > 0);
+}
+function checkWin() {
+  const cb = run.combat;
+  if (!cb) return true;
+  if (cb.enemies.filter((e) => e.hp > 0).length === 0) { winCombat(); return true; }
+  return false;
+}
+
+/* ----- hero strikes ----- */
+function strike(e, o) {
+  const cb = run.combat, pc = cb.pc;
+  let adv = 0, dis = 0;
+  if (pc.hidden || pc.firstAdv || (e.cond.asleep > 0)) adv = 1;
+  if (pc.poisoned > 0 || pc.frightened > 0 || pc.restrained) dis = 1;
+  const mode = modeOf(adv, dis);
+  const x = d20roll(mode);
+  const total = x.r + o.bonus;
+  const crit = x.r === 20;
+  const hit = crit || (x.r !== 1 && total >= e.ac);
+  const dice = x.all.length > 1 ? 'd20 [' + x.all.join(', ') + '→' + x.r + ']' : 'd20 [' + x.r + ']';
+  const chip = o.name + ': ' + dice + ' ' + sgn(o.bonus) + ' = ' + total + ' vs AC ' + e.ac + (crit ? ' — CRITICAL HIT' : hit ? ' — hit' : ' — miss');
+  say('roll', chip, { ok: hit });
+  if (!hit) { say('sys', fill(pickR(TPL.miss), { t: e.n, T: cap(e.n) })); return false; }
+  let dm = rollDice(o.dice[0] * (crit ? 2 : 1), o.dice[1], o.dice[2] || 0).total;
+  let sneak = 0;
+  if (o.sneakOk && hero.cls === 'rogue' && !pc.sneakUsed && (mode > 0 || allyNow())) {
+    sneak = rollDice(Math.ceil(hero.level / 2) * (crit ? 2 : 1), 6).total;
+    pc.sneakUsed = true;
+  }
+  const total2 = dm + sneak;
+  say('sys', fill(pickR(TPL.hit), { t: e.n }) + ' ' + total2 + ' damage' + (sneak ? ' (including ' + sneak + ' Sneak Attack)' : '') + '.');
+  dmgEnemy(e, total2);
+  return true;
+}
+function weaponStrike(e) {
+  const w = CLASSES[hero.cls].wpn;
+  const bonusDmg = hero.cls === 'fighter' ? 2 : hero.cls === 'cleric' ? 1 : 0;
+  return strike(e, { name: 'Attack', bonus: atkBonus(hero), dice: [1, w.die, aMod(hero, w.abil) + bonusDmg], sneakOk: true });
+}
+function pickAlive(prefId) {
+  const cb = run.combat;
+  return enemyById(prefId) || cb.enemies.find((e) => e.hp > 0) || null;
+}
+function afterAttackFlags() {
+  const pc = run.combat && run.combat.pc;
+  if (pc) { pc.hidden = false; pc.firstAdv = false; }
+}
+
+function spendRes(res) {
+  if (!res) return true;
+  if ((hero.res[res] || 0) < 1) return false;
+  hero.res[res]--;
+  return true;
+}
+
+function cAct(name, targetId) {
+  const cb = run.combat;
+  if (!cb || run.phase !== 'combat') return;
+  cb.menu = null;
+  const acted = cb.acted;
+  const L = hero.level;
+  if (name === 'attack') {
+    if (acted.action) return;
+    let e = pickAlive(targetId);
+    if (!e) return;
+    weaponStrike(e);
+    if (run.combat && hero.cls === 'fighter' && L >= 5 && run.combat.enemies.length) { const e2 = pickAlive(targetId); if (e2) { say('sys', 'Extra Attack!'); weaponStrike(e2); } }
+    if (!run.combat) return;
+    afterAttackFlags();
+    acted.action = true;
+    if (checkWin()) return;
+    endPlayerTurn();
+    return;
+  }
+  if (name === 'defend') {
+    if (acted.action) return;
+    acted.action = true;
+    cb.pc.defending = true;
+    say('sys', 'You take a defensive stance. Attacks against you have disadvantage until your next turn.');
+    endPlayerTurn();
+    return;
+  }
+  if (name === 'flee') {
+    if (acted.action) return;
+    if (cb.boss) { say('sys', 'There is nowhere to run. Not from this.'); changed(); return; }
+    acted.action = true;
+    const dc = 10 + Math.min(4, livingEnemies().length);
+    const res = doCheck('acrobatics', dc, 0);
+    say('roll', rollChip(res), { ok: res.ok });
+    if (res.ok) { fled('You break away and escape.'); return; }
+    say('sys', 'They cut you off.');
+    endPlayerTurn();
+    return;
+  }
+  if (name.startsWith('i:')) { useCombatItem(name.slice(2), targetId); return; }
+  if (name.startsWith('p:')) { usePower(name.slice(2), targetId); return; }
+}
+function fled(msg) {
+  const cb = run.combat;
+  const room = run.adv.rooms[cb.roomId];
+  run.combat = null;
+  run.phase = 'room';
+  say('sys', msg);
+  bumpAlert(1);
+  deed('Fled from ' + (room ? room.name : 'a fight'));
+  setFlag('fled_' + cb.roomId);
+  narr('You scramble clear, lungs burning, leaving the fight behind.', factsFor('flee', 'You escape the fight and leave your foes behind.'));
+  run.cur.resolved = true;
+  run.cur.choices = [C('Continue deeper', { id: 'continue', kind: 'next' })];
+  save();
+  changed();
+}
+
+function useCombatItem(id, targetId) {
+  const cb = run.combat;
+  const acted = cb.acted;
+  if ((hero.inv[id] || 0) < 1) return;
+  if (id === 'potion') {
+    if (acted.bonus) return;
+    hero.inv.potion--;
+    const r = rollDice(2, 4, 2);
+    const g = mend(r.total);
+    acted.bonus = true;
+    say('sys', 'You drink a potion: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').');
+    changed();
+    return;
+  }
+  if (acted.action) return;
+  if (id === 'smoke') {
+    hero.inv.smoke--;
+    acted.action = true;
+    if (cb.boss) { say('sys', 'The smoke billows. You vanish from view, and the fight eases for a moment.'); cb.pc.hidden = true; endPlayerTurn(); return; }
+    fled('You smash the smoke bomb and slip away in the haze.');
+    return;
+  }
+  const e = pickAlive(targetId);
+  if (!e) return;
+  hero.inv[id]--;
+  acted.action = true;
+  if (id === 'oil') {
+    strike(e, { name: 'Oil flask', bonus: aMod(hero, 'dex') + prof(hero), dice: [2, 6, 0], sneakOk: false });
+  } else if (id === 'scroll') {
+    const dm = rollDice(3, 6).total;
+    say('sys', 'The scroll bursts into flame: ' + dm + ' fire damage to ' + e.n + '.');
+    dmgEnemy(e, dm);
+  }
+  afterAttackFlags();
+  if (checkWin()) return;
+  endPlayerTurn();
+}
+
+function usePower(id, targetId) {
+  const cb = run.combat, acted = cb.acted, pc = cb.pc;
+  const L = hero.level;
+  const p = powerList(hero).find((x) => x.id === id);
+  if (!p) return;
+  if (p.t === 'action' && acted.action) return;
+  if (p.t === 'bonus' && acted.bonus) return;
+  if (p.res && (hero.res[p.res] || 0) < 1) { say('sys', 'You have none of that left.'); changed(); return; }
+  if (p.tgt && !pickAlive(targetId)) return;
+  const e = p.tgt ? pickAlive(targetId) : null;
+  spendRes(p.res);
+  if (p.t === 'action') acted.action = true;
+  if (p.t === 'bonus') acted.bonus = true;
+  const sm = spellMod(hero);
+  let usedAction = p.t === 'action';
+  switch (id) {
+    case 'second_wind': { const r = rollDice(1, 10, L); const g = mend(r.total); say('sys', 'Second Wind: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
+    case 'action_surge': { acted.action = false; say('sys', 'Action Surge! You take another action.'); usedAction = false; break; }
+    case 'hide': {
+      const dc = 12 + Math.floor(L / 2);
+      const res = doCheck('stealth', dc, 0);
+      say('roll', rollChip(res), { ok: res.ok });
+      if (res.ok) { pc.hidden = true; say('sys', 'You vanish from sight. Your next attack has advantage and Sneak Attack.'); }
+      else say('sys', 'They see you.');
+      break;
+    }
+    case 'firebolt': { strike(e, { name: 'Fire Bolt', bonus: sm, dice: [L >= 5 ? 2 : 1, 10, 0], sneakOk: false }); afterAttackFlags(); break; }
+    case 'magic_missile': {
+      let tot = 0;
+      for (let i = 0; i < 3; i++) tot += rollDice(1, 4, 1).total;
+      say('sys', 'Three darts of force streak out: ' + tot + ' damage to ' + e.n + '.');
+      dmgEnemy(e, tot);
+      break;
+    }
+    case 'shield': pc.shield = true; say('sys', 'A shimmering barrier springs up: +5 AC until your next turn.'); break;
+    case 'sleep': {
+      let pool = rollDice(5, 8).total;
+      const targets = livingEnemies().filter((x) => !x.fl.includes('undead')).sort((a, b) => a.hp - b.hp);
+      let n = 0;
+      targets.forEach((x) => { if (x.hp <= pool && !x.boss) { pool -= x.hp; x.cond.asleep = 3; n++; } });
+      say('sys', n ? 'Sleep: ' + n + ' foe' + (n > 1 ? 's' : '') + ' slump into slumber (3 rounds, or until hurt).' : 'Sleep: nothing falls asleep.');
+      break;
+    }
+    case 'scorching_ray': {
+      for (let i = 0; i < 3; i++) {
+        const t = pickAlive(targetId);
+        if (!t) break;
+        strike(t, { name: 'Ray ' + (i + 1), bonus: sm, dice: [2, 6, 0], sneakOk: false });
+        if (!run.combat) return;
+      }
+      afterAttackFlags();
+      break;
+    }
+    case 'sacred_flame': {
+      const dc = spellDC(hero);
+      const sv = d(20) + 1;
+      if (sv >= dc) say('sys', e.n + ' resists the radiance (' + sv + ' vs DC ' + dc + ').');
+      else { const dm = rollDice(L >= 5 ? 2 : 1, 8).total; say('sys', 'Radiant fire falls on ' + e.n + ': ' + dm + ' damage.'); dmgEnemy(e, dm); }
+      break;
+    }
+    case 'cure_wounds': { const r = rollDice(L >= 5 ? 2 : 1, 8, aMod(hero, 'wis')); const g = mend(Math.max(1, r.total)); say('sys', 'Cure Wounds: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').'); break; }
+    case 'guiding_bolt': { strike(e, { name: 'Guiding Bolt', bonus: sm, dice: [4, 6, 0], sneakOk: false }); afterAttackFlags(); break; }
+    case 'turn_undead': {
+      const dc = spellDC(hero);
+      let n = 0;
+      livingEnemies().forEach((x) => { if (x.fl.includes('undead')) { const sv = d(20); if (sv + 0 < dc) { x.cond.turned = 2; n++; } } });
+      say('sys', n ? 'Turn Undead: ' + n + ' recoil and flee for two rounds.' : 'Turn Undead: nothing here answers to it.');
+      break;
+    }
+    case 'breath': {
+      const dc = 8 + prof(hero) + aMod(hero, 'con');
+      const dmg = rollDice(L >= 5 ? 3 : 2, 6).total;
+      say('sys', 'You exhale a cone of fire.');
+      livingEnemies().forEach((x) => { const sv = d(20) + 1; const dm = sv >= dc ? Math.floor(dmg / 2) : dmg; say('sys', x.n + (sv >= dc ? ' dodges for half: ' : ' is caught: ') + dm + '.'); dmgEnemy(x, dm); });
+      break;
+    }
+    default: break;
+  }
+  if (!run.combat) return;
+  if (checkWin()) return;
+  if (usedAction) { endPlayerTurn(); return; }
+  save();
+  changed();
+}
+
+/* ----- the rest of the round ----- */
+function endPlayerTurn() {
+  const cb = run.combat;
+  if (!cb) return;
+  if (checkWin()) return;
+  allyTurn();
+  if (!run.combat || checkWin()) return;
+  if (cb.skip) { cb.skip = false; say('sys', 'The enemy is still reeling from your ambush.'); }
+  else enemyPhase();
+  if (!run.combat) return;
+  endRound(false);
+}
+function endRound(initial) {
+  const cb = run.combat;
+  const pc = cb.pc;
+  cb.round++;
+  if (pc.poisoned > 0) pc.poisoned--;
+  if (pc.frightened > 0) pc.frightened--;
+  cb.enemies.forEach((e) => { ['asleep', 'turned'].forEach((k) => { if (e.cond[k] > 0) e.cond[k]--; }); });
+  cb.acted = { action: false, bonus: false };
+  pc.shield = false; pc.defending = false; pc.sneakUsed = false;
+  say('sys', '— Round ' + cb.round + ' —');
+  save();
+  changed();
+}
+function allyTurn() {
+  const cb = run.combat;
+  const a = allyNow();
+  if (!a || !cb) return;
+  if (a.role === 'priest' && hero.hp < hero.hpMax * 0.5 && !cb.allyHealed) {
+    cb.allyHealed = true;
+    const g = mend(rollDice(1, 6, 2 + hero.level).total);
+    say('sys', a.name + ' lays a hand on you: +' + g + ' HP.');
+    return;
+  }
+  const alive = livingEnemies();
+  if (!alive.length) return;
+  const t = alive[Math.floor(dRand.f() * alive.length)];
+  const bonus = 3 + Math.floor(hero.level / 2);
+  const x = rawD20(0);
+  if (x.r !== 1 && (x.r === 20 || x.r + bonus >= t.ac)) {
+    const dm = rollDice(1, a.role === 'sellsword' ? 8 : a.role === 'scout' ? 6 : 4, 2 + Math.floor(hero.level / 2)).total * (x.r === 20 ? 2 : 1);
+    say('sys', a.name + ' strikes ' + t.n + ': ' + dm + ' damage.');
+    dmgEnemy(t, dm);
+  } else say('sys', a.name + ' attacks ' + t.n + ' and misses.');
+}
+function enemyPhase() {
+  const cb = run.combat;
+  const list = cb.enemies.filter((e) => e.hp > 0);
+  for (let k = 0; k < list.length; k++) {
+    const e = list[k];
+    if (!run.combat) return;
+    if (e.hp <= 0) continue;
+    if (e.cond.asleep > 0 || e.cond.turned > 0) continue;
+    if (e.sp && cb.round >= 2 && (cb.round - 2) % e.sp.every === 0) {
+      if (e.sp.k === 'summon' && cb.enemies.length < 6) {
+        for (let i = 0; i < e.sp.n; i++) { const m = makeMon(e.sp.key); m.id = 'e' + cb.n++; cb.enemies.push(m); }
+        say('sys', '⚠ ' + e.n + ' calls for aid: ' + e.sp.n + ' more ' + (MON[e.sp.key].pl || MON[e.sp.key].n + 's').toLowerCase() + ' join the fight.');
+        continue;
+      }
+      if (e.sp.k === 'breath') {
+        const dmg = rollDice(e.sp.dice[0], e.sp.dice[1]).total;
+        const sv = doSave('dex', e.sp.dc, 0);
+        say('roll', e.n + ' unleashes a gout of ' + e.sp.type + '! ' + rollChip(sv), { ok: sv.ok });
+        hurt(sv.ok ? Math.floor(dmg / 2) : dmg, e.sp.type);
+        if (hero.hp <= 0) { down(); return; }
+        continue;
+      }
+    }
+    for (let i = 0; i < (e.multi || 1); i++) {
+      if (!run.combat) return;
+      enemyAttack(e);
+      if (hero.hp <= 0) { down(); return; }
+    }
+  }
+}
+function enemyAttack(e) {
+  const cb = run.combat, pc = cb.pc;
+  const A = allyNow();
+  if (A && dRand.f() < 0.25) {
+    const x = rawD20(0);
+    if (x.r !== 1 && x.r + e.atk >= 13 + Math.floor(hero.level / 2)) {
+      const dm = rollArr(e.dmg).total;
+      A.hp -= dm;
+      say('sys', e.n + ' strikes ' + A.name + ' (' + dm + ').');
+      if (A.hp <= 0) { A.alive = false; A.active = false; setFlag('ally_dead'); say('dmg', A.name + ' falls!'); deed(A.name + ' fell in battle'); }
+    } else say('sys', e.n + ' swings at ' + A.name + ' and misses.');
+    return;
+  }
+  let adv = 0, dis = 0;
+  if (e.fl.includes('pack') && cb.enemies.some((x) => x !== e && x.hp > 0)) adv = 1;
+  if (pc.restrained) adv = 1;
+  if (pc.hidden || pc.defending) dis = 1;
+  const mode = modeOf(adv, dis);
+  const x = rawD20(mode);
+  const ac = heroAC(hero) + (pc.shield ? 5 : 0);
+  const crit = x.r === 20;
+  const hit = crit || (x.r !== 1 && x.r + e.atk >= ac);
+  const dtxt = x.all.length > 1 ? '[' + x.all.join(', ') + '→' + x.r + ']' : '[' + x.r + ']';
+  if (!hit) {
+    say('sys', fill(pickR(TPL.emiss), { E: cap(e.n) }) + ' (d20 ' + dtxt + ' ' + sgn(e.atk) + ' vs AC ' + ac + ')');
+    return;
+  }
+  let dm = rollDice(e.dmg[0] * (crit ? 2 : 1), e.dmg[1], e.dmg[2]).total;
+  if (hero.cls === 'rogue' && hero.level >= 5 && (hero.res.dodge || 0) > 0) { hero.res.dodge--; dm = Math.ceil(dm / 2); say('sys', 'Uncanny Dodge halves the blow.'); }
+  say('sys', fill(pickR(TPL.ehit), { E: cap(e.n) }) + (crit ? ' (critical)' : '') + ' (d20 ' + dtxt + ' ' + sgn(e.atk) + ' vs AC ' + ac + ')');
+  hurt(dm, null);
+  if (e.fl.includes('drain') && dm > 0) { const h = Math.floor(dm / 2); e.hp = Math.min(e.max, e.hp + h); say('sys', e.n + ' drinks in your vitality (+' + h + ').'); }
+  if (hero.hp <= 0) return;
+  if (e.fl.includes('web') && !pc.restrained && dRand.f() < 0.5) {
+    const sv = doSave('dex', 12, 0);
+    say('roll', rollChip(sv), { ok: sv.ok });
+    if (!sv.ok) { pc.restrained = true; say('sys', 'Webbing pins you in place: attacks against you have advantage and yours have disadvantage. Use an action to break free.'); }
+  }
+  if (e.fl.includes('weaken') && pc.poisoned <= 0 && dRand.f() < 0.5) {
+    const sv = doSave('con', 11, 0);
+    say('roll', rollChip(sv), { ok: sv.ok });
+    if (!sv.ok) { pc.poisoned = 2; say('sys', 'You feel sick and shaky: disadvantage on attacks for 2 rounds.'); }
+  }
+  if (e.fl.includes('fear') && pc.frightened <= 0 && dRand.f() < 0.5) {
+    const sv = doSave('wis', 12, hero.species === 'elf' ? 1 : 0);
+    say('roll', rollChip(sv), { ok: sv.ok });
+    if (!sv.ok) { pc.frightened = 2; say('sys', 'Dread grips you: disadvantage on attacks for 2 rounds.'); }
+  }
+}
+function breakFree() {
+  const cb = run.combat;
+  if (!cb || !cb.pc.restrained || cb.acted.action) return;
+  cb.acted.action = true;
+  const res = doCheck('athletics', 11, 0);
+  say('roll', rollChip(res), { ok: res.ok });
+  if (res.ok) { cb.pc.restrained = false; say('sys', 'You tear free of the webbing.'); }
+  else say('sys', 'The webbing holds.');
+  endPlayerTurn();
+}
+
+/* ----- victory and defeat ----- */
+function winCombat() {
+  const cb = run.combat;
+  const adv = run.adv;
+  const room = adv.rooms[cb.roomId];
+  const boss = cb.boss;
+  run.combat = null;
+  run.phase = 'room';
+  say('head', 'Victory');
+  if (!boss) {
+    const g = Math.round(cb.startThr * (1 + hero.level * 0.35)) + d(6);
+    hero.gold += g; led().gold += g;
+    say('sys', '+' + g + ' gold from the spoils.');
+    if (dRand.f() < 0.3) { const it = pickR(['potion', 'potion', 'oil', 'smoke']); addItem(it, 1); say('sys', 'You find: ' + ITEMS[it].n + '.'); }
+    const br = mend(Math.ceil(hero.hpMax * 0.2));
+    if (br) say('sys', 'You catch your breath: +' + br + ' HP.');
+    narr('The last foe falls. Silence settles, and you can hear your own breathing.', factsFor('victory', 'The last of your foes falls, and silence returns.'));
+    run.cur.resolved = true;
+    run.cur.choices = [C('Search the area', { id: 'search', kind: 'next' }), C('Continue deeper', { id: 'continue', kind: 'next' })];
+    save();
+    changed();
+    return;
+  }
+  const nm = adv.villain.name;
+  narr(nm + ' sinks to one knee, weapon slipping from their fingers. The fight is over. What happens next is up to you.', factsFor('boss_down', nm + ' is beaten and kneeling. The fight is over.'));
+  const L = hero.level;
+  run.cur.resolved = true;
+  run.cur.choices = [
+    C('Strike the final blow', { kind: 'end', end: 'slain', drive: 'vengeance', s: { flags: ['villain_slain'], deed: 'Slew ' + nm, legacy: { t: 'villain_slain', name: nm } } }),
+    C('Spare ' + nm, { kind: 'end', end: 'spared', drive: 'mercy', s: { flags: ['villain_spared'], deed: 'Spared ' + nm, legacy: { t: 'villain_spared', name: nm } } }),
+    C('Bind ' + nm + ' and drag them to justice', { kind: 'end', end: 'bound', drive: 'glory', s: { flags: ['villain_bound'], deed: 'Took ' + nm + ' alive' } }),
+  ];
+  save();
+  changed();
+}
+function endChoice(c) {
+  say('choice', c.label);
+  if (c.drive && hero.drive === c.drive && !run.cur.driveGiven) { run.cur.driveGiven = true; if (gainFortune(1) > 0) say('sys', '✦ Your drive stirs: +1 Fortune.'); }
+  applyFx(c.s);
+  finishAdventure(c.end);
+}
+function drinkPotion() {
+  if (run.phase === 'combat') return;
+  if ((hero.inv.potion || 0) < 1 || hero.hp >= hero.hpMax) return;
+  hero.inv.potion--;
+  const g = mend(rollDice(2, 4, 2).total);
+  say('sys', 'You drink a potion: +' + g + ' HP (' + hero.hp + '/' + hero.hpMax + ').');
+  save();
+  changed();
+}
+function deathSaves() {
+  let s = 0, f = 0;
+  const marks = [];
+  while (s < 3 && f < 3) {
+    const r = d(20);
+    if (r === 20) { marks.push('★'); return { out: 'revived', marks }; }
+    if (r === 1) { f += 2; marks.push('✗✗'); }
+    else if (r < 10) { f++; marks.push('✗'); }
+    else { s++; marks.push('✓'); }
+  }
+  return { out: s >= 3 ? 'stable' : 'dead', marks };
+}
+function down() {
+  const cb = run.combat;
+  const boss = cb ? cb.boss : run.adv.rooms[run.roomId].type === 'boss';
+  const room = run.adv.rooms[cb ? cb.roomId : run.roomId];
+  run.combat = null;
+  run.phase = 'room';
+  say('head', 'You fall');
+  hero.hp = 0;
+  if (!S.settings.forgiving) {
+    const r = deathSaves();
+    say('sys', 'Death saves: ' + r.marks.join(' ') + ' — ' + (r.out === 'dead' ? 'you do not rise.' : r.out === 'revived' ? 'a surge of will brings you back.' : 'you stabilize.'));
+    if (r.out === 'dead') { hero.alive = false; run.phase = 'dead'; finishAdventure('death'); return; }
+  }
+  hero.hp = 1;
+  const lost = Math.floor(led().gold / 2);
+  hero.gold = Math.max(0, hero.gold - lost);
+  led().gold -= lost;
+  if ((hero.inv.potion || 0) > 0) { hero.inv.potion--; }
+  bumpAlert(2);
+  tickClock(2);
+  setFlag('defeated');
+  deed('Was left for dead in the ' + room.name);
+  say('sys', 'You are left for dead. You wake later with 1 HP, a lighter purse' + (lost ? ' (−' + lost + ' gold)' : '') + ', and a potion fewer.');
+  if (boss) { finishAdventure('defeat'); return; }
+  narr('Darkness, then pain, then a cold floor under your cheek. Whoever beat you did not stay to finish it.', factsFor('defeat', 'You were beaten and left for dead, and wake alone later.'));
+  run.cur.resolved = true;
+  run.cur.choices = [C('Continue deeper', { id: 'continue', kind: 'next' })];
+  save();
+  changed();
+}
+function handleDown() { down(); }
+
+/* ---------- epilogue ---------- */
+function finishAdventure(kind) {
+  const adv = run.adv, v = adv.villain, T = themeOf();
+  const a = adv.npcs.ally;
+  run.phase = 'epilogue';
+  run.combat = null;
+  const win = ['slain', 'spared', 'bound', 'parley', 'snatch', 'victory'].includes(kind);
+  run.ending = kind;
+  const paras = [];
+  say('head', 'Epilogue');
+  const core = {
+    slain: v.name + ' falls, and ' + adv.site + ' goes quiet.',
+    spared: 'You lower your blade. ' + v.name + ' watches you go, unsure whether to thank you or curse you.',
+    bound: 'You bind ' + v.name + ' and march them out into the daylight to face judgment.',
+    parley: 'Words do what steel could not. ' + v.name + ' agrees to end what began here, on terms you both can live with.',
+    snatch: 'You escape with ' + adv.mcg + ', and ' + v.name + "'s curses follow you out of " + adv.site + '.',
+    victory: v.name + ' is finished.',
+    defeat: 'You wake outside ' + adv.site + ', bruised and alone. ' + v.name + "'s plan goes on without you.",
+    death: 'Your story ends in the dark of ' + adv.site + '. The stones keep your name.',
+  }[kind];
+  paras.push(core);
+
+  /* hook consequences */
+  const h = adv.hook;
+  if (win || kind === 'defeat') {
+    if (h === 'rescue' && a) {
+      if (flag('ally_slain')) paras.push(a.name + ' betrayed you, and paid for it. It is not a victory anyone will sing about.');
+      else if (a.betrayer && a.alive) paras.push(a.name + ' vanished into the dark after the betrayal. You may meet again.');
+      else if (!a.alive) paras.push(a.name + ' did not make it out. You carry that, and so does ' + adv.patron.name + '.');
+      else if (flag('ally_abandoned') && !a.active) paras.push('You left ' + a.name + ' behind. When you returned, there was nothing but ropes.');
+      else if (a.captive) paras.push('You never found ' + a.name + ' in time.');
+      else if (flag('ally_left_safe')) paras.push(a.name + ' was waiting at the door when you came out, grinning like it was a game.');
+      else paras.push(a.name + ' walks home beside you, tired and alive.');
+    } else if (h === 'recover') {
+      if (flag('relic_destroyed')) paras.push(adv.mcg + ' is gone for good. ' + adv.patron.name + ' will have to take your word for it.');
+      else if (flag('relic_kept')) paras.push('You kept ' + adv.mcg + '. Its whispers follow you down the road.');
+      else if (win && kind !== 'defeat') paras.push('You carry ' + adv.mcg + ' back to ' + adv.place + '.');
+      else paras.push(adv.mcg + ' is still down there.');
+    } else if (h === 'ritual') {
+      paras.push(flag('clock_done') ? 'The rite finished before you could stop it, and ' + adv.place + ' will feel it.' : 'The rite died with ' + v.name + "'s plans.");
+    } else if (h === 'hunt') {
+      paras.push(kind === 'slain' || kind === 'bound' ? 'The hunting stops, and ' + adv.place + ' sleeps without fear.' : kind === 'defeat' ? 'The hunting goes on.' : 'The hunting stops, for now.');
+    } else if (h === 'investigate') {
+      paras.push(kind === 'defeat' ? 'People are still vanishing, and now you know why.' : 'You bring the truth back to ' + adv.place + '. People stop vanishing.');
+    }
+  }
+  /* twist consequences */
+  const t = adv.twist.type;
+  let reward = adv.reward;
+  if (win) {
+    if (t === 'patron_lied') {
+      if (flag('sided_villain') && !flag('sided_patron')) { paras.push('You tell the village the truth. ' + adv.patron.name + ' is gone by morning, and no payment comes.'); reward = 0; }
+      else if (flag('patron_truth')) paras.push('With the letter in hand, you make sure ' + adv.patron.name + ' answers for it.');
+      else paras.push('You deliver the news. ' + adv.patron.name + ' pays, smiling thinly. You do not quite trust that smile.');
+    } else if (t === 'villain_sympathetic') {
+      if (kind === 'parley' || kind === 'spared') paras.push(v.name + "'s grief finds a better outlet than blood.");
+      else if (kind === 'slain') paras.push('You think, sometimes, about what was written in that ledger.');
+    } else if (t === 'ally_betrays' && flag('ally_redeemed')) {
+      paras.push(a.name + ' gets a chance to start over, because you offered one.');
+    }
+  }
+  if (flag('clock_done') && win) reward = Math.round(reward * 0.7);
+  if (flag('relic_kept')) reward = Math.round(reward * 0.5);
+  if (win && reward > 0) {
+    hero.gold += reward;
+    paras.push(adv.patron.name + ' pays you ' + reward + ' gold.');
+  }
+  /* what the story remembers */
+  if (a && a.alive && !a.betrayer && !a.captive && h === 'rescue' && !flag('ally_abandoned') && win) hero.legacy.push({ t: 'ally_saved', name: a.name });
+  Object.keys(adv.npcs).forEach((id) => {
+    const n = adv.npcs[id];
+    if (id !== 'ally' && n.met && n.alive && n.att >= 2 && !hero.legacy.some((l) => l.name === n.name)) hero.legacy.push({ t: 'npc_helped', name: n.name });
+  });
+  hero.legacy = hero.legacy.slice(-4);
+  /* leveling */
+  let lv = null;
+  if (win && hero.level < 5) lv = levelUp(hero);
+  if (win) hero.adventures++;
+  if (kind === 'death') { hero.alive = false; }
+  const deeds = led().deeds.slice(-6);
+  hero.chronicle.push({ title: adv.titleFull, end: kind, level: hero.level, deeds, seed: adv.seed });
+  hero.chronicle = hero.chronicle.slice(-12);
+  if (kind === 'death') {
+    S.heroes = S.heroes.filter((x) => x.id !== hero.id);
+    S.fallen.push({ name: hero.name, cls: hero.cls, species: hero.species, level: hero.level, adventures: hero.adventures, title: adv.titleFull, deeds });
+  }
+  paras.forEach((p, i) => narr(p, factsFor('epilogue', p)));
+  if (deeds.length) say('sys', 'Deeds: ' + deeds.join(' • '));
+  if (lv) say('sys', '⬆ You reach level ' + hero.level + '! +' + lv.gain + ' max HP. ' + lv.note);
+  else if (win && hero.level >= 5) say('sys', 'You are at the height of your power for now.');
+  run.epilogue = { kind, win, title: adv.titleFull, reward, level: lv };
+  save();
+  changed();
+}
+function leaveRun() {
+  S.run = null;
+  run = null;
+  if (hero && hero.alive) { recalc(hero); hero.hp = hero.hpMax; }
+  save();
+  changed();
+}
+function abandonRun() {
+  S.run = null;
+  run = null;
+  save();
+  changed();
+}
+function save() {
+  if (S) Store.save(S);
+}
+
+/* ---------- optional on-device narrator (WebLLM) ---------- */
+const MODELS = {
+  tiny: { label: 'Tiny: Llama 3.2 1B', id: 'Llama-3.2-1B-Instruct', size: '~0.7 GB', note: 'Fastest, plainest prose.' },
+  small: { label: 'Small: Qwen2.5 1.5B', id: 'Qwen2.5-1.5B-Instruct', size: '~1 GB', note: 'Recommended balance.' },
+  better: { label: 'Better: Qwen2.5 3B', id: 'Qwen2.5-3B-Instruct', size: '~2 GB', note: 'Best prose, needs a newer phone.' },
+};
+const WEBLLM_URL = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/+esm';
+
+const AI = {
+  lib: null, engine: null, status: 'off', modelKey: null, modelId: null, progress: 0, msg: '', err: '', f16: false,
+  async support() {
+    if (window.__mockLLM) return { ok: true, f16: true };
+    if (!navigator.gpu) return { ok: false, why: 'This browser has no WebGPU. Try Chrome on a recent Android phone.' };
+    try {
+      const ad = await navigator.gpu.requestAdapter();
+      if (!ad) return { ok: false, why: 'No WebGPU adapter was found on this device.' };
+      return { ok: true, f16: !!(ad.features && ad.features.has('shader-f16')) };
+    } catch (e) { return { ok: false, why: String((e && e.message) || e) }; }
+  },
+  fullId(key, f16) { return MODELS[key].id + (f16 ? '-q4f16_1-MLC' : '-q4f32_1-MLC'); },
+  async cached(key) {
+    if (window.__mockLLM) return true;
+    try {
+      const sup = await this.support();
+      if (!sup.ok) return false;
+      if (!this.lib) this.lib = await import(WEBLLM_URL);
+      return !!(await this.lib.hasModelInCache(this.fullId(key, sup.f16)));
+    } catch (e) { return false; }
+  },
+  async load(key, cb) {
+    this.err = '';
+    if (window.__mockLLM) { this.engine = window.__mockLLM; this.status = 'ready'; this.modelKey = key; return true; }
+    this.status = 'loading';
+    this.progress = 0;
+    const sup = await this.support();
+    if (!sup.ok) { this.status = 'error'; this.err = sup.why; return false; }
+    this.f16 = sup.f16;
+    try {
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      if (!this.lib) this.lib = await import(WEBLLM_URL);
+      const id = this.fullId(key, sup.f16);
+      this.engine = await this.lib.CreateMLCEngine(id, {
+        initProgressCallback: (r) => { this.progress = r.progress || 0; this.msg = r.text || ''; if (cb) cb(this.progress, this.msg); },
+      });
+      this.modelKey = key; this.modelId = id; this.status = 'ready';
+      return true;
+    } catch (e) {
+      this.status = 'error';
+      this.err = String((e && e.message) || e);
+      this.engine = null;
+      return false;
+    }
+  },
+  interrupt() { try { if (this.engine && this.engine.interruptGenerate) this.engine.interruptGenerate(); } catch (e) { /* ignore */ } },
+  async chat(messages, o) {
+    o = o || {};
+    const eng = this.engine;
+    if (o.json) {
+      const r = await eng.chat.completions.create({ messages, max_tokens: o.max || 60, temperature: 0.1, response_format: { type: 'json_object', schema: JSON.stringify(o.json) } });
+      return r.choices[0].message.content;
+    }
+    const stream = await eng.chat.completions.create({ messages, max_tokens: o.max || 130, temperature: o.temp || 0.8, top_p: 0.9, stream: true });
+    let out = '';
+    for await (const chunk of stream) {
+      const t = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) || '';
+      out += t;
+      if (o.onToken) o.onToken(out);
+    }
+    return out;
+  },
+};
+const aiOn = () => S && S.settings.narrator === 'ai' && AI.status === 'ready' && !!AI.engine;
+
+const NARR_SYS = 'You are the narrator of a solo fantasy dungeon-crawl tabletop game. Rewrite the DRAFT as vivid prose in second person, present tense. Keep every fact, name, number and outcome exactly as written. Never add new characters, items, monsters or events. Never offer choices or ask questions. Output only the rewritten passage, 2 to 4 sentences.';
+function cleanNarration(t, draft) {
+  t = String(t || '').replace(/^\s*(narrator|passage|rewritten passage)\s*:\s*/i, '').replace(/[*_#`>]/g, '').replace(/\s+\n/g, '\n').trim();
+  if (t.length < 25) return null;
+  if (/^(draft|sure|certainly|here)/i.test(t)) return null;
+  const m = t.match(/^[\s\S]*[.!?]["')]?/);
+  if (m && m[0].length > 40) t = m[0];
+  if (t.length > 900) return null;
+  return t;
+}
+const Narrator = {
+  queue: [], running: null,
+  request(entry, facts) {
+    if (!aiOn()) return;
+    this.queue.push({ entry, facts });
+    if (this.queue.length > 3) this.queue.shift();
+    this.pump();
+  },
+  userMoved() {
+    this.queue.length = 0;
+    if (this.running) { this.running.aborted = true; AI.interrupt(); }
+  },
+  async pump() {
+    if (this.running) return;
+    const job = this.queue.shift();
+    if (!job) return;
+    this.running = job;
+    try { await this.runJob(job); } catch (e) { job.entry.t = job.entry.tpl; job.entry.live = false; if (ui.onEntry) ui.onEntry(job.entry); }
+    this.running = null;
+    this.pump();
+  },
+  async runJob(job) {
+    const e = job.entry, f = job.facts;
+    const lines = [];
+    lines.push('Setting: ' + f.setting + '. Story: ' + f.story + '.');
+    lines.push('Hero: ' + f.hero + '.');
+    if (f.backstory) lines.push('Hero backstory: ' + String(f.backstory).slice(0, 240));
+    if (f.recent && f.recent.length) lines.push('Recent events: ' + f.recent.join('; ') + '.');
+    if (f.action) lines.push('The hero just chose to: ' + f.action + ' (' + f.result + ').');
+    lines.push('DRAFT: ' + f.draft);
+    const long = f.kind === 'twist' || f.kind === 'boss' || f.kind === 'epilogue';
+    e.live = true;
+    if (ui.onEntry) ui.onEntry(e);
+    let last = '';
+    const text = await AI.chat([{ role: 'system', content: NARR_SYS }, { role: 'user', content: lines.join('\n') }], {
+      max: long ? 170 : 120,
+      onToken: (t) => { last = t; if (!job.aborted) { e.t = t; if (ui.onEntry) ui.onEntry(e); } },
+    });
+    e.live = false;
+    const cleaned = cleanNarration(job.aborted ? last : text, f.draft);
+    if (cleaned && (!job.aborted || cleaned.length > 70)) { e.t = cleaned; e.ai = true; } else e.t = e.tpl;
+    if (ui.onEntry) ui.onEntry(e);
+    save();
+  },
+};
+
+/* ---------- free-text actions ---------- */
+const APPROACHES = Object.keys(SKILLS).concat(['attack']);
+const KEYWORDS = [
+  [/\b(sneak|hide|creep|quiet|shadow|stealth|tiptoe)/i, 'stealth'],
+  [/\b(pick|lock|disarm|tinker|steal|pocket|jimmy|unlatch)/i, 'sleight'],
+  [/\b(persuade|talk|ask|negotiate|convince|plead|bargain|charm|reason|befriend|appeal)/i, 'persuasion'],
+  [/\b(lie|trick|bluff|deceive|pretend|disguise|fake|con)\b/i, 'deception'],
+  [/\b(threat|intimidat|scare|menace|growl|demand|bully|terrif)/i, 'intimidation'],
+  [/\b(search|examine|inspect|study|investigate|check|look closely|analy|probe|poke)/i, 'investigation'],
+  [/\b(listen|watch|scout|notice|look|peek|spot|observe)/i, 'perception'],
+  [/\b(climb|jump|push|break|lift|bash|force|smash|shove|kick|heave|ram|drag|wedge)/i, 'athletics'],
+  [/\b(dodge|roll|leap|swing|vault|balance|duck|dash|tumble|slide)/i, 'acrobatics'],
+  [/\b(spell|magic|arcane|cast|dispel|rune|glyph|enchant|ward|fire|lightning)/i, 'arcana'],
+  [/\b(pray|holy|bless|faith|divine|god|sacred|incense|altar)/i, 'religion'],
+  [/\b(heal|bandage|treat|cure|medic|tend|poultice)/i, 'medicine'],
+  [/\b(recall|lore|remember|history|read|legend|scholar|translate)/i, 'history'],
+  [/\b(track|forage|survive|navigate|trail|follow)/i, 'survival'],
+  [/\b(nature|beast|animal|plant|herb|calm|tame|mushroom)/i, 'nature'],
+  [/\b(sense|insight|motive|read them|mood|truth)/i, 'insight'],
+  [/\b(attack|kill|stab|slash|fight|strike|charge|slay|hit|shoot)/i, 'attack'],
+];
+function keywordIntent(text) {
+  for (let i = 0; i < KEYWORDS.length; i++) if (KEYWORDS[i][0].test(text)) return KEYWORDS[i][1];
+  /* no keyword: use whatever the hero is best at among broad skills */
+  const pool = ['investigation', 'perception', 'persuasion', 'athletics', 'insight'];
+  return pool.slice().sort((a, b) => skillMod(hero, b) - skillMod(hero, a))[0];
+}
+async function parseIntent(text) {
+  if (aiOn()) {
+    try {
+      const schema = { type: 'object', properties: { approach: { type: 'string', enum: APPROACHES } }, required: ['approach'] };
+      const out = await AI.chat([
+        { role: 'system', content: 'Classify a fantasy tabletop RPG player action into one approach. Reply as JSON. Skills: ' + APPROACHES.join(', ') + '. "attack" means starting violence.' },
+        { role: 'user', content: 'Action: "' + String(text).slice(0, 200).replace(/"/g, "'") + '"' },
+      ], { json: schema, max: 40 });
+      const j = JSON.parse(out);
+      if (j && APPROACHES.includes(j.approach)) return j.approach;
+    } catch (e) { /* fall back to keywords */ }
+  }
+  return keywordIntent(text);
+}
+const FREE_TYPES = ['combat', 'trap', 'puzzle', 'hazard', 'lore', 'treasure', 'social', 'entrance'];
+function canFreeAct() {
+  if (!run || run.phase !== 'room' || !run.cur) return false;
+  const room = run.adv.rooms[run.roomId];
+  if (!FREE_TYPES.includes(room.type)) return false;
+  if (room.type === 'social') return run.cur.acts < 2;
+  return !run.cur.resolved;
+}
+async function freeAction(text) {
+  text = String(text || '').trim().slice(0, 140);
+  if (!text || !canFreeAct()) return;
+  const roomId = run.roomId;
+  const skillKey = await parseIntent(text);
+  if (!run || run.roomId !== roomId || !canFreeAct()) return;
+  const room = run.adv.rooms[roomId];
+  const L = hero.level;
+  let skill = skillKey === 'attack' ? 'athletics' : skillKey;
+  let dc = room.dc || room.ambushDC || room.dcTalk || dcFor(L, 0);
+  const g = genericFx(room);
+  let s = g.s, f = g.f;
+  if (room.type === 'combat') {
+    dc = skill === 'stealth' ? room.ambushDC : room.talkDC + 1;
+    if (skillKey === 'attack') { run.cur.choices.push(C('✎ ' + text, { kind: 'combat', fx: { combat: { enemies: room.enemies, surprise: null } } })); pickChoice(run.cur.choices[run.cur.choices.length - 1].id); return; }
+    s = { combat: { enemies: room.enemies, surprise: 'player' } };
+    f = { combat: { enemies: room.enemies, surprise: 'enemy' } };
+  } else if (room.type === 'social') {
+    const id = room.npc;
+    dc = room.dcTalk;
+    s = { att: { [id]: 1 }, clue: 1 };
+    f = { att: { [id]: -1 } };
+  } else if (room.type === 'entrance') {
+    s = { flags: ['quiet_start'], clue: 0 };
+    f = { alert: 1 };
+  } else {
+    if (room.good && room.good.includes(skill)) dc -= 2;
+    else if (skill !== room.skill && skill !== room.alt) dc += 2;
+  }
+  const ok = fill(pickR(TPL.succ[skill]), { obj: room.obj || 'it', Obj: cap(room.obj || 'it') });
+  const no = fill(pickR(TPL.fail[skill]), { obj: room.obj || 'it', Obj: cap(room.obj || 'it') });
+  const c = C('✎ ' + text, { kind: 'check', skill, dc, s, f, ok, no, drive: 'curiosity' });
+  run.cur.choices.push(c);
+  pickChoice(c.id);
+}
+
+/* ---------- UI ---------- */
+const V = { screen: 'title', modal: null, create: { species: 'human', cls: 'fighter', bg: 'soldier', drive: 'glory', name: '', story: '' }, newAdv: { heroId: null, theme: 'random', seed: '' }, els: new Map(), lastId: 0, sel: null, installEvt: null, aiLoading: false, toastT: null };
+const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1 });
+const app = () => document.getElementById('app');
+
+function btn(a, label, cls, extra) { return '<button class="btn ' + (cls || '') + '" data-a="' + a + '" ' + (extra || '') + '>' + label + '</button>'; }
+function toast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(V.toastT);
+  V.toastT = setTimeout(() => { t.style.display = 'none'; }, 2600);
+}
+function download(name, text, type) {
+  try {
+    const b = new Blob([text], { type: type || 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  } catch (e) { toast('Could not export on this browser.'); }
+}
+function heroMarkdown(h) {
+  const L = [];
+  L.push('---', 'name: ' + h.name, 'species: ' + SPECIES[h.species].n, 'class: ' + CLASSES[h.cls].n, 'level: ' + h.level, 'drive: ' + DRIVES[h.drive].n, 'background: ' + BACKGROUNDS[h.bg].n, 'adventures: ' + h.adventures, '---', '', '# ' + h.name, '', '## Backstory', h.story ? h.story : '_Nothing written yet._', '', '## Threads');
+  if (h.legacy.length) h.legacy.forEach((l) => L.push('- ' + l.t.replace('_', ' ') + ': ' + l.name)); else L.push('- none yet');
+  L.push('', '## Chronicle');
+  if (!h.chronicle.length) L.push('_No adventures yet._');
+  h.chronicle.forEach((c) => { L.push('### ' + c.title + ' (' + c.end + ', level ' + c.level + ')'); c.deeds.forEach((d0) => L.push('- ' + d0)); L.push(''); });
+  return L.join('\n');
+}
+
+/* ----- screens ----- */
+function setScreen(s) { V.screen = s; V.modal = null; render(); }
+function render() {
+  document.documentElement.style.setProperty('--fs', S.settings.textSize);
+  const a = app();
+  if (V.screen === 'play' && run) { renderPlay(true); renderModal(); return; }
+  if (V.screen === 'title') a.innerHTML = viewTitle();
+  else if (V.screen === 'heroes') a.innerHTML = viewHeroes();
+  else if (V.screen === 'create') a.innerHTML = viewCreate();
+  else if (V.screen === 'new') a.innerHTML = viewNew();
+  else a.innerHTML = viewTitle();
+  renderModal();
+}
+function aiStatusText() {
+  if (S.settings.narrator !== 'ai') return 'Narrator: built-in text (works fully offline)';
+  if (AI.status === 'ready') return 'Narrator: on-device AI ready (' + MODELS[S.settings.model].label + ')';
+  if (AI.status === 'loading') return 'Narrator: loading on-device model… ' + Math.round(AI.progress * 100) + '%';
+  if (AI.status === 'error') return 'Narrator: AI unavailable, using built-in text';
+  return 'Narrator: on-device AI (not loaded yet)';
+}
+function viewTitle() {
+  const cont = S.run && S.heroes.find((h) => h.id === S.run.heroId);
+  return '<div class="scr"><div class="logo">DELVE</div><p class="tag">Solo dungeon crawls. Plays offline.</p>' +
+    (cont ? btn('continue', 'Continue: ' + esc(S.run.adv.title) + '<br><span class="small">' + esc(cont.name) + ', level ' + cont.level + '</span>', 'primary') : '') +
+    btn('go:new', 'New adventure', cont ? '' : 'primary') +
+    btn('go:heroes', 'Heroes (' + S.heroes.length + ')') +
+    btn('go:settings', 'Narrator &amp; settings') +
+    (V.installEvt ? btn('install', 'Install app', 'ghost') : '') +
+    '<p class="small dim" style="text-align:center">' + esc(aiStatusText()) + '</p></div>';
+}
+function viewHeroes() {
+  let h = '<div class="scr"><div class="row" style="align-items:center"><h2>Heroes</h2><div style="flex:none;width:100px">' + btn('go:title', 'Back', 'ghost') + '</div></div>';
+  if (!S.heroes.length) h += '<p class="dim">No heroes yet. Create one to begin.</p>';
+  S.heroes.forEach((x) => {
+    h += '<div class="card"><h3>' + esc(x.name) + '</h3><div class="dim small">' + SPECIES[x.species].n + ' ' + CLASSES[x.cls].n + ', level ' + x.level + ' &middot; ' + x.adventures + ' adventure' + (x.adventures === 1 ? '' : 's') + ' &middot; ' + x.gold + ' gold</div>' +
+      (x.legacy.length ? '<div class="small" style="margin-top:4px">Threads: ' + x.legacy.map((l) => esc(l.name + ' (' + l.t.replace('_', ' ') + ')')).join(', ') + '</div>' : '') +
+      '<div class="row" style="margin-top:8px"><button class="btn" data-a="n:hero:' + x.id + '" style="margin:0">Play</button><button class="btn ghost" data-a="hero:md:' + x.id + '" style="margin:0">Export .md</button><button class="btn danger" data-a="hero:del:' + x.id + '" style="margin:0">Retire</button></div></div>';
+  });
+  h += btn('go:create', 'Create a hero', 'primary');
+  if (S.fallen.length) {
+    h += '<h3 style="margin-top:20px">Hall of the Fallen</h3>';
+    S.fallen.slice(-8).forEach((f) => { h += '<div class="card small"><b>' + esc(f.name) + '</b>, ' + SPECIES[f.species].n + ' ' + CLASSES[f.cls].n + ', level ' + f.level + '<br><span class="dim">Fell in ' + esc(f.title) + '</span></div>'; });
+  }
+  return h + '</div>';
+}
+function viewCreate() {
+  const c = V.create;
+  let h = '<div class="scr"><div class="row" style="align-items:center"><h2>New hero</h2><div style="flex:none;width:100px">' + btn(S.heroes.length ? 'go:heroes' : 'go:title', 'Back', 'ghost') + '</div></div>';
+  h += '<label class="f">Name</label><div class="row"><input type="text" id="nm" maxlength="24" value="' + esc(c.name) + '" placeholder="Name your hero"><button class="btn" data-a="c:rname" style="flex:none;width:90px;margin:0">Roll</button></div>';
+  h += '<label class="f">Class</label>';
+  Object.keys(CLASSES).forEach((k) => { const x = CLASSES[k]; h += '<button class="cls ' + (c.cls === k ? 'on' : '') + '" data-a="c:cls:' + k + '"><b>' + x.n + '</b> <span class="dim small">d' + x.hd + ' hit die</span><br><span class="small dim">' + x.blurb + '</span></button>'; });
+  h += '<label class="f">Species</label><div class="chips">' + Object.keys(SPECIES).map((k) => '<button class="chip ' + (c.species === k ? 'on' : '') + '" data-a="c:species:' + k + '">' + SPECIES[k].n + '</button>').join('') + '</div><div class="small dim">' + SPECIES[c.species].perk + '</div>';
+  h += '<label class="f">Background</label><div class="chips">' + Object.keys(BACKGROUNDS).map((k) => '<button class="chip ' + (c.bg === k ? 'on' : '') + '" data-a="c:bg:' + k + '">' + BACKGROUNDS[k].n + '</button>').join('') + '</div><div class="small dim">' + BACKGROUNDS[c.bg].d + ' Skills: ' + BACKGROUNDS[c.bg].skills.map((s) => SKILLS[s].n).join(', ') + '.</div>';
+  h += '<label class="f">Drive</label><div class="chips">' + Object.keys(DRIVES).map((k) => '<button class="chip ' + (c.drive === k ? 'on' : '') + '" data-a="c:drive:' + k + '">' + DRIVES[k].n + '</button>').join('') + '</div><div class="small dim">' + DRIVES[c.drive].d + ' Choices that match your drive earn Fortune, a reroll for failed checks.</div>';
+  h += '<label class="f">Backstory (optional)</label><textarea id="bs" maxlength="400" placeholder="Who are you, and what do you want? The narrator can use this.">' + esc(c.story) + '</textarea>';
+  h += '<div style="height:12px"></div>' + btn('c:make', 'Begin as this hero', 'primary');
+  return h + '</div>';
+}
+function viewNew() {
+  let h = '<div class="scr"><div class="row" style="align-items:center"><h2>New adventure</h2><div style="flex:none;width:100px">' + btn('go:title', 'Back', 'ghost') + '</div></div>';
+  if (!S.heroes.length) return h + '<p class="dim">You need a hero first.</p>' + btn('go:create', 'Create a hero', 'primary') + '</div>';
+  if (!S.heroes.find((x) => x.id === V.newAdv.heroId)) V.newAdv.heroId = S.heroes[0].id;
+  h += '<label class="f">Hero</label>';
+  S.heroes.forEach((x) => { h += '<button class="cls ' + (V.newAdv.heroId === x.id ? 'on' : '') + '" data-a="n:hero:' + x.id + ':pick"><b>' + esc(x.name) + '</b> <span class="dim small">' + SPECIES[x.species].n + ' ' + CLASSES[x.cls].n + ', level ' + x.level + '</span></button>'; });
+  const sel = S.heroes.find((x) => x.id === V.newAdv.heroId);
+  if (sel.legacy.length) h += '<div class="card small"><b>The story remembers:</b><br>' + sel.legacy.map((l) => esc(l.name) + ' (' + l.t.replace('_', ' ') + ')').join('<br>') + '</div>';
+  h += '<label class="f">Setting</label><div class="chips"><button class="chip ' + (V.newAdv.theme === 'random' ? 'on' : '') + '" data-a="n:theme:random">Surprise me</button>' + Object.keys(THEMES).map((k) => '<button class="chip ' + (V.newAdv.theme === k ? 'on' : '') + '" data-a="n:theme:' + k + '">' + THEMES[k].n + '</button>').join('') + '</div>';
+  h += '<label class="f">Seed (optional, same seed = same dungeon)</label><div class="row"><input type="text" id="sd" maxlength="30" value="' + esc(V.newAdv.seed) + '" placeholder="e.g. ember-vault-42"><button class="btn" data-a="n:rseed" style="flex:none;width:90px;margin:0">Roll</button></div>';
+  h += '<div style="height:12px"></div>' + btn('n:begin', 'Enter the dungeon', 'primary');
+  return h + '</div>';
+}
+
+/* ----- play screen ----- */
+function renderPlay(full) {
+  if (!run) return;
+  if (full || !document.getElementById('log')) {
+    app().innerHTML = '<div class="hud" id="hud"></div><div class="log" id="log"></div><div class="acts" id="acts"><div class="in" id="actsin"></div></div>';
+    V.els = new Map();
+    V.lastId = 0;
+  }
+  renderHud();
+  appendLog();
+  renderActs();
+}
+function renderHud() {
+  const c = run.adv.clock;
+  const pips = (n, m, on) => Array.from({ length: m }, (_, i) => '<span class="' + (i < n ? on : '') + '">' + (i < n ? '●' : '○') + '</span>').join('');
+  const slots = hero.res.slots !== undefined ? ' &middot; ✨ <b>' + hero.res.slots + '</b>' : '';
+  document.getElementById('hud').innerHTML =
+    '<div class="l1"><span class="nm">' + esc(hero.name) + ' <span class="dim small">Lv ' + hero.level + ' ' + CLASSES[hero.cls].n + '</span></span>' +
+    '<button class="ib" data-a="sheet" aria-label="Character sheet">👤</button><button class="ib" data-a="journal" aria-label="Journal">📖</button><button class="ib" data-a="menu" aria-label="Menu">⋯</button></div>' +
+    '<div class="bar"><i style="width:' + Math.round(100 * hero.hp / hero.hpMax) + '%"></i><span>' + hero.hp + ' / ' + hero.hpMax + ' HP</span></div>' +
+    '<div class="stats"><span>AC <b>' + (heroAC(hero) + (run.combat && run.combat.pc.shield ? 5 : 0)) + '</b></span><span>✦ <b>' + hero.fortune + '</b></span><span>🧪 <b>' + (hero.inv.potion || 0) + '</b></span><span>🪙 <b>' + hero.gold + '</b></span>' + slots +
+    '<span title="' + esc(c.label) + '">⏳ <span class="pips">' + pips(c.at, c.max, 'on') + '</span></span><span title="Alert">⚠ <span class="pips">' + pips(led().alert, 5, 'al') + '</span></span></div>';
+}
+function mkEntry(e) {
+  const el = document.createElement('div');
+  setEntry(el, e);
+  return el;
+}
+function setEntry(el, e) {
+  const map = { head: 'head', narr: 'narr', sys: 'sys', roll: 'roll', dmg: 'dmg', choice: 'choice' };
+  let cls = map[e.k] || 'sys';
+  if (e.k === 'roll') cls += e.ok ? ' ok' : ' bad';
+  if (e.k === 'narr' && e.live) cls += ' live';
+  el.className = cls;
+  el.textContent = e.t;
+}
+function appendLog() {
+  const log = document.getElementById('log');
+  if (!log) return;
+  let added = false;
+  run.log.forEach((e) => {
+    if (e.id <= V.lastId) return;
+    const el = mkEntry(e);
+    log.appendChild(el);
+    V.els.set(e.id, el);
+    V.lastId = e.id;
+    added = true;
+  });
+  if (added) log.scrollTop = log.scrollHeight;
+}
+ui.onEntry = (e) => {
+  const el = V.els.get(e.id);
+  if (el) { setEntry(el, e); const log = document.getElementById('log'); if (log && log.scrollHeight - log.scrollTop - log.clientHeight < 140) log.scrollTop = log.scrollHeight; }
+};
+function optHtml(c) {
+  let sub = '';
+  if (c.kind === 'check' && c.skill) sub = SKILLS[c.skill].n + ' &middot; ' + needWord(skillMod(hero, c.skill), c.dc);
+  else if (c.kind === 'combat') sub = 'Fight';
+  else if (c.kind === 'trade') sub = 'Costs ' + c.cost + ' gold';
+  if (c.drive && c.drive === hero.drive) sub += (sub ? ' &middot; ' : '') + '★ fits your drive';
+  const cont = c.id === 'continue' || c.id === 'search';
+  return '<button class="opt ' + (c.id === 'continue' ? 'cont' : '') + ' ' + (c.drive === hero.drive ? 'hot' : '') + '" data-a="pick:' + c.id + '">' + esc(c.label) + (sub && !cont ? '<small>' + sub + '</small>' : '') + '</button>';
+}
+function renderActs() {
+  const box = document.getElementById('actsin');
+  if (!box || !run) return;
+  let h = '';
+  const ph = run.phase;
+  if (ph === 'doors') {
+    h += run.adv.slots[run.slot].opts.map((id) => {
+      const d0 = doorInfo(id);
+      return '<button class="opt door" data-a="door:' + id + '"><b>' + esc(d0.label) + '</b>' + esc(d0.hint) + (d0.kind ? '<br><span class="k">' + esc(d0.kind) + '</span>' : '') + '</button>';
+    }).join('');
+    h += miniRow();
+  } else if (ph === 'room') {
+    h += run.cur.choices.map(optHtml).join('');
+    if (canFreeAct()) h += '<div class="free"><input id="free" type="text" maxlength="140" placeholder="✎ Or try something else…" enterkeyhint="go"><button data-a="free">Try</button></div>';
+    h += miniRow();
+  } else if (ph === 'check') {
+    h += '<div class="fort"><b>That did not go well.</b><br><span class="small dim">Spend a point of Fortune to roll again, or accept the result.</span></div>';
+    h += '<button class="opt" data-a="fort" ' + (hero.fortune < 1 ? 'disabled' : '') + '>✦ Spend Fortune and reroll (' + hero.fortune + ' left)</button><button class="opt" data-a="accept">Accept the result</button>';
+  } else if (ph === 'combat') {
+    h += viewCombat();
+  } else if (ph === 'epilogue' || ph === 'dead') {
+    h += '<button class="opt cont" data-a="finish">' + (run.epilogue && run.epilogue.kind === 'death' ? 'Close the book' : 'Finish adventure') + '</button>';
+  }
+  box.innerHTML = h;
+}
+function miniRow() {
+  return '<div class="mini">' + ((hero.inv.potion || 0) > 0 && hero.hp < hero.hpMax ? '<button data-a="pot">🧪 Drink potion (' + hero.inv.potion + ')</button>' : '') + '<button data-a="sheet">Sheet</button><button data-a="journal">Journal</button></div>';
+}
+function condText(e) {
+  const t = [];
+  if (e.boss) t.push('boss');
+  if (e.cond.asleep > 0) t.push('asleep');
+  if (e.cond.turned > 0) t.push('turned');
+  return t.join(' · ');
+}
+function viewCombat() {
+  const cb = run.combat;
+  const alive = livingEnemies();
+  if (!alive.length) return '';
+  if (!V.sel || !alive.find((e) => e.id === V.sel)) V.sel = alive[0].id;
+  const sel = alive.find((e) => e.id === V.sel);
+  let h = '<div class="foebox"><pre class="art">' + esc(artFor(sel)) + '</pre><div class="foes">' + alive.map((e) =>
+    '<button class="foe ' + (e.id === V.sel ? 'sel' : '') + '" data-a="sel:' + e.id + '"><div class="row"><b>' + esc(e.n) + '</b><span class="small dim" style="text-align:right">' + e.hp + '/' + e.max + ' &middot; AC ' + e.ac + '</span></div><div class="fb"><i style="width:' + Math.max(2, Math.round(100 * e.hp / e.max)) + '%"></i></div>' + (condText(e) ? '<div class="cd">' + condText(e) + '</div>' : '') + '</button>').join('') + '</div></div>';
+  const pc = cb.pc;
+  const cs = [];
+  if (pc.poisoned > 0) cs.push('sickened');
+  if (pc.frightened > 0) cs.push('frightened');
+  if (pc.restrained) cs.push('webbed');
+  if (pc.hidden) cs.push('hidden');
+  if (pc.shield) cs.push('shielded');
+  if (pc.defending) cs.push('defending');
+  if (cs.length) h += '<div class="cond">You: ' + cs.join(', ') + '</div>';
+  if (cb.menu === 'powers') {
+    h += powerList(hero).map((p) => {
+      const used = p.t === 'bonus' ? cb.acted.bonus : p.t === 'action' ? cb.acted.action : false;
+      const none = p.res && (hero.res[p.res] || 0) < 1;
+      return '<button class="opt" data-a="ca:p:' + p.id + '" ' + (used || none ? 'disabled' : '') + '>' + esc(p.n) + ' <span class="dim small">(' + (p.t === 'bonus' ? 'bonus' : p.t === 'free' ? 'free' : 'action') + (p.res ? ', ' + RES_N[p.res].toLowerCase() + ': ' + (hero.res[p.res] || 0) : ', at will') + ')</span><small>' + esc(p.d) + (p.tgt ? ' Target: ' + esc(sel.n) + '.' : '') + '</small></button>';
+    }).join('') + '<button class="opt" data-a="cm:main">Back</button>';
+  } else if (cb.menu === 'items') {
+    h += Object.keys(ITEMS).filter((k) => (hero.inv[k] || 0) > 0).map((k) => '<button class="opt" data-a="ca:i:' + k + '" ' + (k === 'potion' ? (cb.acted.bonus ? 'disabled' : '') : (cb.acted.action ? 'disabled' : '')) + '>' + ITEMS[k].n + ' &times;' + hero.inv[k] + '<small>' + ITEMS[k].d + (k === 'oil' || k === 'scroll' ? ' Target: ' + esc(sel.n) + '.' : '') + '</small></button>').join('') + '<button class="opt" data-a="cm:main">Back</button>';
+  } else {
+    const w = CLASSES[hero.cls].wpn;
+    const hasItems = Object.keys(ITEMS).some((k) => (hero.inv[k] || 0) > 0);
+    h += '<div class="grid"><button class="opt" data-a="ca:attack" ' + (cb.acted.action ? 'disabled' : '') + '>⚔ Attack<small>' + w.n + ' &middot; ' + sgn(atkBonus(hero)) + '</small></button>' +
+      '<button class="opt" data-a="cm:powers">✨ Abilities</button>' +
+      '<button class="opt" data-a="cm:items" ' + (hasItems ? '' : 'disabled') + '>🧪 Items</button>' +
+      '<button class="opt" data-a="ca:defend" ' + (cb.acted.action ? 'disabled' : '') + '>🛡 Defend</button>' +
+      (pc.restrained ? '<button class="opt" data-a="free-web">Break free</button>' : '<button class="opt" data-a="ca:flee" ' + (cb.acted.action || cb.boss ? 'disabled' : '') + '>🏃 Flee</button>') + '</div>';
+  }
+  return h;
+}
+
+/* ----- modals ----- */
+function openModal(m) { V.modal = m; renderModal(); }
+function closeModal() { V.modal = null; renderModal(); }
+function renderModal() {
+  let root = document.getElementById('modal');
+  if (!V.modal) { if (root) root.remove(); return; }
+  if (!root) { root = document.createElement('div'); root.id = 'modal'; root.className = 'modal'; document.body.appendChild(root); }
+  let body = '';
+  if (V.modal === 'sheet') body = viewSheet();
+  else if (V.modal === 'journal') body = viewJournal();
+  else if (V.modal === 'menu') body = viewMenu();
+  else if (V.modal === 'settings') body = viewSettings();
+  const st = root.firstElementChild ? root.firstElementChild.scrollTop : 0;
+  root.innerHTML = '<div class="sheet" data-modal="' + V.modal + '">' + body + '</div>';
+  if (root.firstElementChild) root.firstElementChild.scrollTop = st;
+}
+function topbar(title) { return '<div class="top"><h2 style="margin:0">' + title + '</h2><button class="x" data-a="close" aria-label="Close">✕</button></div>'; }
+function viewSheet() {
+  const h = hero;
+  let o = topbar(esc(h.name));
+  o += '<div class="dim small">' + SPECIES[h.species].n + ' ' + CLASSES[h.cls].n + ', level ' + h.level + ' &middot; ' + BACKGROUNDS[h.bg].n + ' &middot; Drive: ' + DRIVES[h.drive].n + '</div>';
+  o += '<div class="bar"><i style="width:' + Math.round(100 * h.hp / h.hpMax) + '%"></i><span>' + h.hp + ' / ' + h.hpMax + ' HP</span></div>';
+  o += '<div class="stats" style="margin-bottom:8px"><span>AC <b>' + heroAC(h) + '</b></span><span>Proficiency <b>+' + prof(h) + '</b></span><span>Attack <b>' + sgn(atkBonus(h)) + '</b></span>' + (h.cls === 'wizard' || h.cls === 'cleric' ? '<span>Spell DC <b>' + spellDC(h) + '</b></span>' : '') + '<span>✦ Fortune <b>' + h.fortune + '/' + fortuneMax(h) + '</b></span><span>Gold <b>' + h.gold + '</b></span></div>';
+  o += '<div class="abil">' + ABIL_ORDER.map((a) => '<div>' + ABIL_N[a] + '<b>' + h.abil[a] + '</b>' + sgn(mod(h.abil[a])) + '</div>').join('') + '</div>';
+  if (run && run.phase !== 'combat' && (h.inv.potion || 0) > 0 && h.hp < h.hpMax) o += btn('pot', '🧪 Drink a potion (' + h.inv.potion + ')');
+  o += '<h3>Abilities</h3><ul class="tight small">' + powerList(h).map((p) => '<li><b>' + esc(p.n) + '</b>: ' + esc(p.d) + '</li>').join('') + passiveLines(h).map((p) => '<li>' + esc(p) + '</li>').join('') + '</ul>';
+  const rs = Object.keys(h.res);
+  if (rs.length) o += '<div class="small dim">Resources: ' + rs.map((k) => RES_N[k] + ' ' + h.res[k] + '/' + resMax(h)[k]).join(', ') + '. A proper rest restores them.</div>';
+  o += '<h3 style="margin-top:12px">Skills</h3>' + Object.keys(SKILLS).map((s) => '<div class="sk ' + (heroSkills(h).has(s) ? 'pf' : '') + '"><span>' + SKILLS[s].n + ' <span class="dim">(' + ABIL_N[SKILLS[s].a] + ')</span></span><b>' + sgn(skillMod(h, s)) + '</b></div>').join('');
+  o += '<h3 style="margin-top:12px">Pack</h3><ul class="tight small">' + Object.keys(ITEMS).filter((k) => (h.inv[k] || 0) > 0).map((k) => '<li>' + ITEMS[k].n + ' &times;' + h.inv[k] + ': ' + ITEMS[k].d + '</li>').join('') + (gearList(h).length ? gearList(h).map((g) => '<li><b>' + g.n + '</b>: ' + g.d + '</li>').join('') : '') + '</ul>';
+  o += '<label class="f">Backstory</label><textarea data-bind="story" maxlength="400" placeholder="Who are you? The narrator can use this.">' + esc(h.story || '') + '</textarea>';
+  o += '<div style="height:8px"></div>' + btn('hero:md:' + h.id, 'Export hero as markdown', 'ghost');
+  return o;
+}
+function attWord(a) { return a >= 2 ? 'devoted' : a === 1 ? 'friendly' : a === 0 ? 'neutral' : a === -1 ? 'wary' : 'hostile'; }
+function viewJournal() {
+  if (!run) return topbar('Journal') + '<p class="dim">No adventure in progress.</p>';
+  const adv = run.adv, c = adv.clock;
+  let o = topbar(esc(adv.titleFull));
+  o += '<div class="card small">' + esc(adv.pitch) + '</div>';
+  o += '<dl class="kv"><dt>Task</dt><dd>' + esc(adv.goal) + '</dd><dt>Clock</dt><dd>' + esc(c.label) + ': ' + c.at + ' / ' + c.max + '</dd><dt>Alert</dt><dd>' + led().alert + ' / 5</dd><dt>Clues</dt><dd>' + led().clues + '</dd><dt>Seed</dt><dd>' + esc(adv.seed) + '</dd></dl>';
+  const met = Object.keys(adv.npcs).map((k) => adv.npcs[k]).filter((n) => n.met);
+  if (met.length) o += '<h3 style="margin-top:12px">People</h3><ul class="tight">' + met.map((n) => '<li>' + esc(n.name) + ' <span class="dim small">(' + attWord(n.att) + (n.alive ? '' : ', fallen') + ')</span></li>').join('') + '</ul>';
+  if (led().deeds.length) o += '<h3 style="margin-top:12px">What you have done</h3><ul class="tight">' + led().deeds.map((d0) => '<li>' + esc(d0) + '</li>').join('') + '</ul>';
+  return o;
+}
+function viewMenu() {
+  return topbar('Menu') + btn('sheet', 'Character sheet') + btn('journal', 'Journal') + btn('go:settings', 'Narrator &amp; settings') + btn('exit', 'Save and return to title') + btn('abandon', 'Abandon this adventure', 'danger');
+}
+function viewSettings() {
+  const s = S.settings;
+  const m = MODELS[s.model];
+  let o = topbar('Narrator &amp; settings');
+  o += '<h3>Narrator</h3><div class="small dim">The game is fully playable offline with built-in text. An on-device model can rewrite the narration in richer prose, and read your free-text actions. It never decides rules or outcomes.</div>';
+  o += '<div class="chips"><button class="chip ' + (s.narrator === 'templates' ? 'on' : '') + '" data-a="set:narrator:templates">Built-in text</button><button class="chip ' + (s.narrator === 'ai' ? 'on' : '') + '" data-a="set:narrator:ai">On-device AI</button></div>';
+  o += '<label class="f">Model</label><div class="chips">' + Object.keys(MODELS).map((k) => '<button class="chip ' + (s.model === k ? 'on' : '') + '" data-a="set:model:' + k + '">' + MODELS[k].label + '</button>').join('') + '</div><div class="small dim">' + m.size + ' one-time download. ' + m.note + ' Needs WebGPU (Chrome on a recent Android phone works well).</div>';
+  o += '<div class="prog"><i id="aiBar" style="width:' + Math.round(AI.progress * 100) + '%"></i></div><div class="small dim" id="aiMsg">' + esc(AI.status === 'error' ? AI.err : aiStatusText()) + '</div>';
+  o += '<div style="height:8px"></div>' + btn('ai:go', AI.status === 'ready' && AI.modelKey === s.model ? 'Narrator is ready' : 'Download &amp; enable narrator', 'primary', V.aiLoading || (AI.status === 'ready' && AI.modelKey === s.model) ? 'disabled' : '');
+  o += '<h3 style="margin-top:14px">Game</h3><label class="f">Difficulty (applies to new adventures)</label><div class="chips">' + [['story', 'Story'], ['standard', 'Standard'], ['grim', 'Grim']].map((x) => '<button class="chip ' + (s.difficulty === x[0] ? 'on' : '') + '" data-a="set:difficulty:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
+  o += '<label class="f">When you fall</label><div class="chips"><button class="chip ' + (s.forgiving ? 'on' : '') + '" data-a="set:forgiving:1">Left for dead (story goes on)</button><button class="chip ' + (!s.forgiving ? 'on' : '') + '" data-a="set:forgiving:0">Death saves (can die)</button></div>';
+  o += '<label class="f">Text size</label><div class="chips">' + [[0.9, 'Small'], [1, 'Medium'], [1.15, 'Large'], [1.3, 'Huge']].map((x) => '<button class="chip ' + (s.textSize === x[0] ? 'on' : '') + '" data-a="set:text:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
+  o += '<h3 style="margin-top:14px">Data</h3><div class="small dim">Everything is stored on this device. Export a backup now and then.</div><div style="height:6px"></div>' + btn('data:export', 'Export backup (.json)', 'ghost') + '<label class="btn ghost" style="cursor:pointer">Import backup<input type="file" id="imp" accept=".json,application/json" style="display:none"></label>' + btn('data:wipe', 'Erase everything', 'danger');
+  return o;
+}
+
+/* ----- actions ----- */
+function say0() { Narrator.userMoved(); }
+async function enableNarrator() {
+  const s = S.settings;
+  s.narrator = 'ai';
+  save();
+  V.aiLoading = true;
+  renderModal();
+  const ok = await AI.load(s.model, (p, msg) => {
+    const bar = document.getElementById('aiBar'), t = document.getElementById('aiMsg');
+    if (bar) bar.style.width = Math.round(p * 100) + '%';
+    if (t) t.textContent = (msg || '').slice(0, 90);
+  });
+  V.aiLoading = false;
+  if (!ok) { s.narrator = 'templates'; toast('Narrator unavailable. Using built-in text.'); } else toast('Narrator ready.');
+  save();
+  renderModal();
+  if (V.screen === 'title') render();
+}
+function actionMd(id) {
+  const h = S.heroes.find((x) => x.id === id) || hero;
+  if (h) download(h.name.replace(/\W+/g, '_') + '.md', heroMarkdown(h), 'text/markdown');
+}
+function onAct(a, el) {
+  const p = a.split(':');
+  const k = p[0];
+  if (k === 'go') {
+    if (p[1] === 'settings') { openModal('settings'); return; }
+    if (p[1] === 'title') { setScreen('title'); return; }
+    setScreen(p[1]); return;
+  }
+  if (k === 'close') { closeModal(); return; }
+  if (k === 'install') { if (V.installEvt) { V.installEvt.prompt(); V.installEvt = null; render(); } return; }
+  if (k === 'continue') { if (S.run) { run = S.run; hero = S.heroes.find((x) => x.id === run.heroId); V.screen = 'play'; render(); } return; }
+  if (k === 'hero') {
+    if (p[1] === 'md') { actionMd(p[2]); return; }
+    if (p[1] === 'del') { if (confirm('Retire this hero for good?')) { S.heroes = S.heroes.filter((x) => x.id !== p[2]); if (S.run && S.run.heroId === p[2]) { S.run = null; run = null; } save(); render(); } return; }
+  }
+  if (k === 'c') {
+    syncInputs();
+    if (p[1] === 'rname') { V.create.name = pickR(HERO_NAMES); render(); return; }
+    if (p[1] === 'make') {
+      const c = V.create;
+      const nh = newHero({ name: (c.name || '').trim() || pickR(HERO_NAMES), species: c.species, cls: c.cls, bg: c.bg, drive: c.drive });
+      nh.story = (c.story || '').trim();
+      S.heroes.push(nh);
+      V.create = { species: 'human', cls: 'fighter', bg: 'soldier', drive: 'glory', name: '', story: '' };
+      V.newAdv.heroId = nh.id;
+      save();
+      setScreen('new');
+      return;
+    }
+    V.create[p[1]] = p[2];
+    render();
+    return;
+  }
+  if (k === 'n') {
+    if (p[1] === 'hero') { V.newAdv.heroId = p[2]; if (p[3] === 'pick') render(); else setScreen('new'); return; }
+    syncInputs();
+    if (p[1] === 'theme') { V.newAdv.theme = p[2]; render(); return; }
+    if (p[1] === 'rseed') { V.newAdv.seed = genSeed(); render(); return; }
+    if (p[1] === 'begin') {
+      const h0 = S.heroes.find((x) => x.id === V.newAdv.heroId);
+      if (!h0) return;
+      const seed = (V.newAdv.seed || '').trim() || genSeed();
+      V.newAdv.seed = '';
+      beginRun(h0, seed, V.newAdv.theme);
+      V.screen = 'play';
+      V.sel = null;
+      render();
+    }
+    return;
+  }
+  if (k === 'set') {
+    const s = S.settings;
+    if (p[1] === 'narrator') {
+      if (p[2] === 'ai') { enableNarrator(); return; }
+      s.narrator = 'templates';
+    } else if (p[1] === 'model') { s.model = p[2]; if (AI.status === 'ready' && AI.modelKey !== p[2]) { AI.status = 'off'; AI.engine = null; } }
+    else if (p[1] === 'difficulty') s.difficulty = p[2];
+    else if (p[1] === 'forgiving') s.forgiving = p[2] === '1';
+    else if (p[1] === 'text') { s.textSize = parseFloat(p[2]); document.documentElement.style.setProperty('--fs', s.textSize); }
+    save();
+    renderModal();
+    return;
+  }
+  if (k === 'ai') { enableNarrator(); return; }
+  if (k === 'data') {
+    if (p[1] === 'export') { download('delve-backup.json', JSON.stringify(S, null, 1), 'application/json'); return; }
+    if (p[1] === 'wipe') { if (confirm('Erase all heroes and progress on this device?')) { Store.wipe(); S = freshState(); run = null; hero = null; V.screen = 'title'; V.modal = null; save(); render(); } return; }
+  }
+  if (!run) return;
+  /* play */
+  if (k === 'sheet') { openModal('sheet'); return; }
+  if (k === 'journal') { openModal('journal'); return; }
+  if (k === 'menu') { openModal('menu'); return; }
+  if (k === 'exit') { V.modal = null; save(); setScreen('title'); return; }
+  if (k === 'abandon') { if (confirm('Abandon this adventure? Progress in it will be lost.')) { abandonRun(); V.modal = null; setScreen('title'); } return; }
+  if (k === 'pot') { say0(); drinkPotion(); return; }
+  if (k === 'door') { say0(); chooseDoor(p[1]); return; }
+  if (k === 'pick') { say0(); pickChoice(p[1]); return; }
+  if (k === 'fort') { say0(); spendFortune(); return; }
+  if (k === 'accept') { say0(); acceptResult(); return; }
+  if (k === 'free') { const i = document.getElementById('free'); if (i && i.value.trim()) { say0(); const t = i.value; i.value = ''; freeAction(t); } return; }
+  if (k === 'finish') { leaveRun(); V.screen = 'title'; render(); return; }
+  if (k === 'sel') { V.sel = p[1]; renderActs(); return; }
+  if (k === 'cm') { run.combat.menu = p[1] === 'main' ? null : p[1]; renderActs(); return; }
+  if (k === 'free-web') { say0(); breakFree(); return; }
+  if (k === 'ca') {
+    say0();
+    const name = p.slice(1).join(':');
+    cAct(name, V.sel);
+    if (run && run.phase === 'combat') renderActs();
+    return;
+  }
+}
+function syncInputs() {
+  const nm = document.getElementById('nm'), bs = document.getElementById('bs'), sd = document.getElementById('sd');
+  if (nm) V.create.name = nm.value;
+  if (bs) V.create.story = bs.value;
+  if (sd) V.newAdv.seed = sd.value;
+}
+
+/* ----- state + boot ----- */
+function freshState() { return { v: 1, settings: defaultSettings(), heroes: [], run: null, fallen: [] }; }
+function loadState() {
+  let s = Store.load();
+  if (!s || typeof s !== 'object' || !Array.isArray(s.heroes)) s = freshState();
+  s.settings = Object.assign(defaultSettings(), s.settings || {});
+  s.fallen = s.fallen || [];
+  s.heroes.forEach((h) => { h.inv = h.inv || { potion: 2 }; h.gear = h.gear || []; h.legacy = h.legacy || []; h.chronicle = h.chronicle || []; h.res = h.res || resMax(h); });
+  return s;
+}
+ui.onChange = () => {
+  save();
+  if (!run) return;
+  if (V.screen === 'play') renderPlay(false);
+  if (V.modal) renderModal();
+};
+ui.onNarrate = (e, f) => { Narrator.request(e, f); };
+
+function wire() {
+  document.addEventListener('click', (ev) => {
+    const t = ev.target.closest('[data-a]');
+    if (!t || t.disabled) return;
+    ev.preventDefault();
+    onAct(t.getAttribute('data-a'), t);
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && ev.target && ev.target.id === 'free') { ev.preventDefault(); onAct('free'); }
+  });
+  document.addEventListener('change', (ev) => {
+    const t = ev.target;
+    if (t && t.getAttribute && t.getAttribute('data-bind') === 'story' && hero) { hero.story = t.value.slice(0, 400); save(); toast('Backstory saved.'); }
+    if (t && t.id === 'imp' && t.files && t.files[0]) {
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const j = JSON.parse(r.result);
+          if (!j || !Array.isArray(j.heroes)) throw new Error('bad');
+          Store.save(j);
+          S = loadState(); run = S.run; hero = run ? S.heroes.find((x) => x.id === run.heroId) : null;
+          if (!hero) { S.run = null; run = null; }
+          V.screen = 'title'; V.modal = null; render(); toast('Backup imported.');
+        } catch (e) { toast('That file is not a Delve backup.'); }
+      };
+      r.readAsText(t.files[0]);
+    }
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (!t) return;
+    if (t.id === 'nm') V.create.name = t.value;
+    if (t.id === 'bs') V.create.story = t.value;
+    if (t.id === 'sd') V.newAdv.seed = t.value;
+  });
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); V.installEvt = e; if (V.screen === 'title') render(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+}
+async function boot() {
+  S = loadState();
+  run = S.run;
+  hero = run ? S.heroes.find((h) => h.id === run.heroId) : null;
+  if (run && !hero) { S.run = null; run = null; }
+  if (run) entryId = run.log.reduce((m, e) => Math.max(m, e.id), 0) + 1;
+  wire();
+  render();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (S.settings.narrator === 'ai') {
+    if (await AI.cached(S.settings.model)) { AI.load(S.settings.model).then(() => { if (V.screen === 'title') render(); }); }
+    else { S.settings.narrator = 'templates'; save(); }
+  }
+}
+window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, onAct, boot, AI, Narrator, freeAction, setRand: (f) => { dRand.f = f; },
+  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+
+})();
+
+</script>
+</body>
 </html>

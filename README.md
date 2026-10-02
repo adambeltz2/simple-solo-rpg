@@ -1,88 +1,57 @@
-# Lone Wanderer — a solo D&D 2024-rules toolkit
+# Delve — a solo 5.5e dungeon generator
 
-A browser-based toolkit for playing Dungeons & Dragons (2024 rules, "5.5e") solo. You
-build a character, then act as both player and DM using an in-app dice roller, a
-homebrew Yes/No oracle for improvised storytelling, a combat tracker, and a searchable
-System Reference Document (SRD) compendium. Everything runs client-side and saves to
-your browser's local storage — no account or server required.
+An offline, phone-first game where you play one hero through short, generated
+dungeon adventures (about 15–25 minutes each) using D&D 2024-style ("5.5e") rules.
+It is a single `index.html` PWA: no account, no server, no build step needed to play.
 
-## Features
+Live: https://adambeltz2.github.io/simple-solo-rpg/
 
-- **Character creation wizard** — species/lineage, class, subclass (for planning),
-  background with the 2024 ability-score-bonus rules, standard array / point buy /
-  manual ability scores, class skill choices, and starting equipment resolved from the
-  SRD's class and background tables.
-- **Character sheet** — ability scores, saving throws, skills (with an
-  expertise-aware proficiency toggle), HP/temp HP/death saves, hit dice, AC
-  (auto-calculated from equipped armor, or overridable), spellcasting info and a
-  prepared-spells picker for casters, inventory, feature/trait log, short/long rest,
-  and a simple level-up flow that adds average hit points and logs new class features.
-- **Dice** — d20 rolls with advantage/disadvantage, arbitrary dice pools, and a
-  persistent roll log per character.
-- **Oracle & solo toolkit** — a homebrew Yes/No oracle with a Chaos Factor that
-  escalates random events, a fail-forward complication roller, an NPC generator, and an
-  approximate XP budget calculator for building solo-safe encounters.
-- **Combat tracker** — initiative order (your character rolls individually; a single
-  roll covers each enemy group, per common solo-play convention), HP/condition
-  tracking, and one-click monster lookup from the compendium.
-- **Adventure journal** — a freeform, timestamped session log for the story you're
-  narrating.
-- **Compendium** — a searchable browser across the bundled SRD data: spells, monsters,
-  equipment, magic items, feats, conditions, species, classes, and backgrounds.
-- **Local save/export** — characters persist in `localStorage`; export/import them as
-  JSON to back up or move between browsers.
+## How it plays
 
-## Getting started
+- Each adventure is a story spine: a hook, a villain and boss, a twist, a clock and an
+  alert meter, clues, NPC attitudes and about seven rooms ending in a boss.
+- Pick one of the offered choices (each shows its skill and difficulty) or type a
+  free-text action. Your choices are recorded in a ledger that changes later rooms,
+  the boss fight and the ending.
+- Turn-based combat with initiative, surprise, conditions, class powers, potions,
+  allies and original ASCII portraits.
+- Heroes persist between adventures: milestone leveling to 5, a chronicle, and
+  consequences (a spared villain can return in a later adventure).
+- Four classes (fighter, rogue, wizard, cleric), five species, backgrounds, and a
+  "drive" that earns Fortune rerolls when you play in character. Difficulty:
+  story, standard, grim. Defeat is either "Left for dead" or real death.
 
-```bash
-npm install
-npm run dev
+## Narration
+
+- Built-in template narration works with no network at all.
+- Optional on-device narrator (WebLLM, Qwen2.5 1.5B by default, 3B or Llama 3.2 1B
+  optional). It needs Chrome with WebGPU. The first use downloads the model
+  (about 0.7–2 GB) and the WebLLM library from the jsdelivr CDN; after that it runs
+  offline. The model only rewrites narration and parses free-text intent; code decides
+  every outcome.
+
+## Install on Android
+
+Open the live URL in Chrome while online, then "Add to Home screen". It then works
+offline. Saves live in the browser's local storage; use Export in Settings for backups.
+
+## Repository layout
+
+- `index.html` — the built app (generated; do not hand-edit).
+- `sw.js`, `manifest.webmanifest`, `icon*` — PWA shell.
+- `src/` — the sources (`00_util.js` … `09_ui.js`, `style.css`, `template.html`) and
+  `build.py`, which assembles them into `index.html`.
+- `tools/test.js` — jsdom bot that plays full adventures through the real UI
+  (`node tools/test.js N seedbase [ai] [smart] [dump]`).
+- `tools/sim.js` — combat balance simulator (`node tools/sim.js N kinds`).
+
+## Develop
+
+```
+npm install      # jsdom, for the tools only
+npm run build    # python3 src/build.py -> index.html
+npm test         # 12 bot playthroughs
 ```
 
-Then open the printed local URL. To build a production bundle:
-
-```bash
-npm run build
-npm run preview
-```
-
-## Live site
-
-Deployed automatically to GitHub Pages on every push to `main`:
-**https://adambeltz2.github.io/simple-solo-rpg/**
-
-The app uses hash-based routing (`/#/character/...`) specifically so that deep links
-and page refreshes work correctly on Pages' static hosting, which has no server-side
-rewrite rules for a single-page app.
-
-## Content sources & attribution
-
-Rules content is drawn from Wizards of the Coast's System Reference Documents:
-
-- Species, classes, subclasses, backgrounds, feats, equipment, and magic items come
-  from **SRD 5.2** (the 2024 rules), via the JSON dataset maintained by the
-  [5e-bits/5e-database](https://github.com/5e-bits/5e-database) project (MIT-licensed
-  code; SRD content © Wizards of the Coast, released under **CC-BY-4.0**).
-- Spells and monster stat blocks are drawn from **SRD 5.1** (the 2014 rules) from the
-  same dataset, since a full 2024 spell/monster list is not yet published in the free
-  SRD. The two rule sets are mechanically compatible for the large majority of entries;
-  treat these two sections as a reference rather than a verbatim 2024 rules text.
-- The Oracle, complication tables, NPC generator, and encounter XP budget are original
-  homebrew mechanics written for this project — not a reproduction of any commercial
-  solo-RPG system.
-
-The bundled data in `src/data/srd/` is generated by `scripts/extract-srd.cjs` from a
-local clone of `5e-bits/5e-database`; see that script's header comment to regenerate it.
-
-This is an unofficial, fan-made project and is not affiliated with or endorsed by
-Wizards of the Coast.
-
-## Tech
-
-React + TypeScript + Vite, React Router, Zustand (with `localStorage` persistence). No
-backend — all state lives in the browser.
-
-## Project status
-
-- See [`CHANGELOG.md`](./CHANGELOG.md) for what's shipped, release by release.
-- See [`BACKLOG.md`](./BACKLOG.md) for what's planned next.
+Edit files in `src/`, rebuild, and commit both `src/` and the regenerated `index.html`.
+Deployment is GitHub Pages via `.github/workflows/deploy.yml` on every push to `main`.
