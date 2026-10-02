@@ -14,3 +14,4 @@ for what shipped and `README.md` for current scope.
 - [ ] [DEBT] Template room text sometimes mismatches the room name (e.g. stolen goods in
       a mushroom garden). Affected: `src/01_data.js`.
 - [ ] [DEBT] Test the narrator on real Android hardware (WebGPU, model download).
+- [ ] [FEATURE] Show combat status on the Attack button before rolling (e.g. "advantage · Sneak Attack ready") so surprise, hidden and ally bonuses are visible. Affected: `src/09_ui.js` (renderActs), `src/06_combat.js` (strike).
