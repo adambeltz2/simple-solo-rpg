@@ -7,6 +7,12 @@ All notable changes to this project are documented here. Format loosely follows
 
 ### Added
 
+- "💡 Think of something else" in every room: three extra approaches beyond the fixed
+  choices. With the on-device narrator ready, the AI writes them from the scene, the hero
+  and the quest; otherwise a built-in pool (favouring what your hero is good at) provides
+  them, so the option always works offline. The model only proposes the action and a skill;
+  the code sets the difficulty and outcome. Tap again for more.
+
 - Reading back through the story: new text now starts at its beginning instead of
   jumping to the end, a "↓ Latest" button appears when you scroll up, the Journal has a
   "Full story so far" tab with the whole adventure log, and the log keeps up to 600 entries.

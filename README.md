@@ -10,8 +10,9 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
 
 - Each adventure is a story spine: a hook, a villain and boss, a twist, a clock and an
   alert meter, clues, NPC attitudes and about seven rooms ending in a boss.
-- Pick one of the offered choices (each shows its skill and difficulty) or type a
-  free-text action. Your choices are recorded in a ledger that changes later rooms,
+- Pick one of the offered choices (each shows its skill and difficulty), tap
+  "Think of something else" for three more ideas (written by the on-device AI when it is
+  on, from a built-in pool otherwise), or type a free-text action. Your choices are recorded in a ledger that changes later rooms,
   the boss fight and the ending.
 - Turn-based combat with initiative, surprise, conditions, class powers, potions,
   allies and original ASCII portraits.

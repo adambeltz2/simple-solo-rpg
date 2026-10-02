@@ -188,6 +188,7 @@ function optHtml(c) {
   if (c.kind === 'check' && c.skill) sub = SKILLS[c.skill].n + ' &middot; ' + needWord(skillMod(hero, c.skill), c.dc);
   else if (c.kind === 'combat') sub = 'Fight';
   else if (c.kind === 'trade') sub = 'Costs ' + c.cost + ' gold';
+  if (c.idea) sub += (sub ? ' &middot; ' : '') + (c.idea === 'ai' ? 'AI idea' : 'idea');
   if (c.drive && c.drive === hero.drive) sub += (sub ? ' &middot; ' : '') + '★ fits your drive';
   const cont = c.id === 'continue' || c.id === 'search';
   return '<button class="opt ' + (c.id === 'continue' ? 'cont' : '') + ' ' + (c.drive === hero.drive ? 'hot' : '') + '" data-a="pick:' + c.id + '">' + esc(c.label) + (sub && !cont ? '<small>' + sub + '</small>' : '') + '</button>';
@@ -205,6 +206,10 @@ function renderActs() {
     h += miniRow();
   } else if (ph === 'room') {
     h += run.cur.choices.map(optHtml).join('');
+    if (canFreeAct()) {
+      const has = run.cur.choices.some((c) => c.idea);
+      h += '<button class="opt ideas" data-a="ideas" ' + (ideasBusy ? 'disabled' : '') + '>' + (ideasBusy ? '💡 Thinking…' : has ? '💡 More ideas' : '💡 Think of something else') + '<small>' + (aiOn() ? 'The on-device AI suggests new approaches' : 'Built-in ideas · turn on the narrator for AI-written ones') + '</small></button>';
+    }
     if (canFreeAct()) h += '<div class="free"><input id="free" type="text" maxlength="140" placeholder="✎ Or try something else…" enterkeyhint="go"><button data-a="free">Try</button></div>';
     h += miniRow();
   } else if (ph === 'check') {
@@ -466,6 +471,7 @@ function onAct(a, el) {
   if (k === 'sheet') { openModal('sheet'); return; }
   if (k === 'journal') { V.jtab = 'sum'; openModal('journal'); return; }
   if (k === 'jt') { V.jtab = p[1]; V.histJump = p[1] === 'log'; renderModal(); return; }
+  if (k === 'ideas') { makeIdeas(); return; }
   if (k === 'latest') { const lg = document.getElementById('log'); if (lg) lg.scrollTop = lg.scrollHeight; return; }
   if (k === 'menu') { openModal('menu'); return; }
   if (k === 'exit') { V.modal = null; save(); setScreen('title'); return; }

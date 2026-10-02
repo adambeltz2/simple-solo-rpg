@@ -9,6 +9,7 @@ const SMART = process.argv[5] === 'smart';
 const DUMP = process.argv[6] === 'dump';
 const DICE = process.env.DICE || 'auto'; // auto | d20 | all: exercise the manual-dice prompt
 
+const SKILLS_OK = new Set(['acrobatics','arcana','athletics','deception','history','insight','intimidation','investigation','medicine','nature','perception','persuasion','religion','sleight','stealth','survival']);
 const stats = { runs: 0, endings: {}, errors: [], badText: [], steps: 0, stuck: 0, levels: {}, deaths: 0, prompts: 0, promptKinds: {}, rejected: 0, byClass: {}, byTheme: {}, twists: {}, hooks: {} };
 
 function lcg(seed) { let s = seed >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
@@ -28,6 +29,12 @@ async function playOne(i) {
         chat: { completions: { async create(o) {
           if (o.stream) {
             return (async function* () { const words = 'You step softly into the dark, and the stones whisper of what came before you here.'.split(' '); for (const x of words) yield { choices: [{ delta: { content: x + ' ' } }] }; })();
+          }
+          if (o.response_format && /ideas/.test(String(o.response_format.schema))) {
+            stats.ideaCalls = (stats.ideaCalls || 0) + 1;
+            const k = stats.ideaCalls % 4;
+            const body = k === 0 ? 'not json at all' : k === 1 ? JSON.stringify({ ideas: [{ action: 'Check the hinges for a hidden catch.', approach: 'investigation' }, { action: '"Whisper to the dark"', approach: 'bogus' }, { action: 'x', approach: 'stealth' }] }) : JSON.stringify({ ideas: [{ action: 'Pry loose a stone and listen behind it', approach: 'perception' }, { action: 'Bluff your way past, loudly', approach: 'deception' }, { action: 'Rush the nearest foe', approach: 'attack' }] });
+            return { choices: [{ message: { content: body } }] };
           }
           return { choices: [{ message: { content: JSON.stringify({ approach: 'perception' }) } }] };
         } } },
@@ -157,6 +164,22 @@ async function playOne(i) {
         else if (atk.length) target = atk[0];
         else target = pick(btns.filter((b) => b.getAttribute('data-a') !== 'cm:main').concat(by('cm:main')));
         if (rnd() < 0.2) { const foes = by('sel:'); if (foes.length) foes[Math.floor(rnd() * foes.length)].click(); }
+      } else if (run.phase === 'room' && rnd() < 0.2 && w.document.querySelector('#actsin [data-a="ideas"]:not([disabled])')) {
+        const before = run.cur.choices.length;
+        w.document.querySelector('#actsin [data-a="ideas"]').click();
+        for (let t = 0; t < 8 && w.document.querySelector('#actsin [data-a="ideas"][disabled]'); t++) await tick();
+        await tick(); await tick();
+        const ideas = run.cur.choices.filter((c) => c.idea);
+        stats.ideas = (stats.ideas || 0) + ideas.length;
+        if (ideas.length !== 3) errs.push('expected 3 idea choices, got ' + ideas.length);
+        ideas.forEach((c) => { if (!c.label || /undefined|null|\{/.test(c.label) || (c.kind === 'check' && (!c.skill || !SKILLS_OK.has(c.skill)))) errs.push('bad idea choice ' + JSON.stringify(c.label)); });
+        if (w.document.querySelectorAll('#actsin .opt.ideas').length !== 1) errs.push('ideas button missing');
+        if (rnd() < 0.7 && ideas.length) {
+          const pre = JSON.stringify(D.S);
+          w.document.querySelector('#actsin [data-a="pick:' + ideas[Math.floor(rnd() * ideas.length)].id + '"]').click();
+          await answerDice(pre);
+        }
+        continue;
       } else if (run.phase === 'room' && rnd() < 0.12 && w.document.getElementById('free')) {
         const inp = w.document.getElementById('free');
         inp.value = pick(['I search the walls for hidden levers', 'sneak past quietly', 'talk to them calmly', 'smash it with my shoulder', 'cast a spell to dispel the wards', 'dance wildly', 'attack!']);
@@ -187,7 +210,7 @@ async function playOne(i) {
 
 (async () => {
   for (let i = 0; i < N; i++) await playOne(i);
-  console.log(JSON.stringify({ dice: DICE, prompts: stats.prompts, promptKinds: stats.promptKinds, rejected: stats.rejected, runs: stats.runs, steps: stats.steps, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
+  console.log(JSON.stringify({ ideas: stats.ideas || 0, ideaCalls: stats.ideaCalls || 0, dice: DICE, prompts: stats.prompts, promptKinds: stats.promptKinds, rejected: stats.rejected, runs: stats.runs, steps: stats.steps, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
   console.log('ERRORS', stats.errors.length);
   stats.errors.slice(0, 6).forEach((e) => console.log(JSON.stringify(e)));
   console.log('BADTEXT', stats.badText.length);
