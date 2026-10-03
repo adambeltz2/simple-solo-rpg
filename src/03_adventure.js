@@ -100,6 +100,11 @@ function generateAdventure(seed, hero, opts) {
       adv.legacyUsed.push(lg);
     }
   }
+  /* a betrayer who got away can come back (hero memories) */
+  if (!returning) {
+    const bm = (hero.memories || []).find((m) => m.kind === 'betrayal' && m.who && !m.resolved && !m.used && m.who !== patron.name);
+    if (bm) { returning = { name: bm.who, t: 'betrayer' }; adv.memUsed = [bm.id]; used.add(bm.who); }
+  }
   const prLine = (s) => fill(s, { patron: patron.name, prole: patron.role, place, site, villain: villain.name, mcg, ritual, reward: adv.reward, ally: '{ally}', opr: '{opr}' });
 
   /* ally */
@@ -175,7 +180,7 @@ function generateAdventure(seed, hero, opts) {
   const s1b = (function () { return { trap: trapRoom, puzzle: puzzleRoom, hazard: hazardRoom, lore: loreRoom }[rng.pick(['trap', 'puzzle', 'hazard', 'lore'])](); })();
   let s2a;
   if (returning) {
-    adv.npcs.ret = { id: 'ret', name: returning.name, role: 'returning', att: 1, met: false, alive: true, from: returning.t };
+    adv.npcs.ret = { id: 'ret', name: returning.name, role: 'returning', att: returning.t === 'betrayer' ? -2 : 1, met: false, alive: true, from: returning.t };
     s2a = mk('social', { npc: 'ret', role: 'returning', dcHelp: diff(0), dcTalk: diff(1), dcLie: diff(1), dcThreat: diff(1) });
   } else if (hookKey === 'rescue' && ally && ally.captive) s2a = socialRoom('prisoner');
   else s2a = socialRoom(rng.pick(['deserter', 'scholar', 'rival', 'trader']));

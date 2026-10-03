@@ -5,6 +5,7 @@ function factsFor(kind, draft, extra) {
     kind, draft, hero: hero.name + ', ' + SPECIES[hero.species].n + ' ' + CLASSES[hero.cls].n,
     setting: themeOf().n + ' (' + adv.site + ')', story: adv.title, backstory: hero.story || '',
     recent: led().deeds.slice(-2),
+    memories: memoriesFor(kind, adv.rooms[run.roomId]),
   }, extra || {});
 }
 
@@ -15,6 +16,10 @@ function beginRun(h, seed, themeKey) {
   adv.legacyUsed.forEach((l) => {
     const i = h.legacy.findIndex((x) => x.t === l.t && x.name === l.name);
     if (i >= 0) h.legacy.splice(i, 1);
+  });
+  (adv.memUsed || []).forEach((id) => {
+    const m = (h.memories || []).find((x) => x.id === id);
+    if (m) m.used = (m.used || 0) + 1;
   });
   run = S.run = {
     v: 1, heroId: h.id, adv, slot: 0, phase: 'doors', roomId: null, cur: null,
@@ -30,6 +35,10 @@ function beginRun(h, seed, themeKey) {
     const l = adv.legacyUsed[0];
     const t = { ally_saved: l.name + ' has not forgotten what you did.', villain_slain: 'This is not the first dark errand like this. The one you slew left kin behind.', villain_spared: 'The mercy you showed ' + l.name + ' has not been forgotten.', npc_helped: l.name + ' remembers you kindly.' }[l.t];
     if (t) say('sys', '↪ ' + t);
+  }
+  if (adv.memUsed && adv.memUsed.length) {
+    const m = (hero.memories || []).find((x) => x.id === adv.memUsed[0]);
+    if (m) say('sys', '↪ You have not forgotten: “' + m.text + '”');
   }
   save();
   enterSlot(0);
@@ -126,6 +135,7 @@ function enterRoom(id) {
   const keep = run.cur && run.cur.prep ? run.cur.prep : null;
   narr(text, factsFor(kind, text));
   if (keep) keep.lines.forEach((l) => say('sys', '⚡ ' + l));
+  if (keep && keep.mods.traitor && adv.npcs.ally) rememberBetrayal(adv.npcs.ally, 'reveal');
   if (room.type === 'social') npcOf(room.npc).met = true;
   run.cur = { prep: keep, choices: buildChoices(room), acts: 0, resolved: false, driveGiven: false, used: [] };
   save();

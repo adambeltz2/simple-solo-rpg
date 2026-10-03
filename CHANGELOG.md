@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] - 2026-10-02
+
+### Added
+
+- Hero memories: the game now remembers the moments that mark your hero. Being struck down or left for dead, and an ally's betrayal, are saved to the hero as short first-person memories (written by the game, so they work with no AI). They persist between adventures and are listed in a new "Memories" tab in the Journal, where you can edit the wording or let one go. They are included in the hero's markdown export, and a "Memories" count shows on the Heroes screen.
+- The story uses them: a betrayer who got away can return in your next adventure (a new scene where you can make them answer for it, demand to know why, offer a second chance, or walk away, and what you choose is recorded), the adventure opens with a "you have not forgotten" line, and with the on-device narrator on, the most relevant memories are passed along so it can echo them.
+- `tools/memory.js`: a targeted test for the betrayal, defeat, return and settle flow.
+
 ## [1.2.0] - 2026-10-02
 
 ### Added

@@ -43,7 +43,13 @@ function startCombat(spec, room) {
     add(makeBoss(adv.villain.bossKey, mods));
     (mods.extra || []).forEach((k) => add(makeMon(k)));
     if (mods.traitor && adv.npcs.ally) { const t = add(makeMon('traitor')); t.traitor = true; if (flag('twist_watching')) t.hp = Math.ceil(t.hp * 0.6); }
-  } else spec.enemies.forEach((k) => add(makeMon(k)));
+  } else {
+    spec.enemies.forEach((k) => {
+      const e = add(makeMon(k));
+      const r = spec.ret && k === 'traitor' ? adv.npcs[spec.ret] : null;
+      if (r) { e.n = r.name; e.retId = spec.ret; }
+    });
+  }
   run.phase = 'combat';
   say('head', '⚔ Combat');
   say('sys', 'Foes: ' + enemies.map((e) => e.n + ' (AC ' + e.ac + ', ' + e.hp + ' HP)').join(', ') + '.');
@@ -77,6 +83,8 @@ function killEnemy(e) {
   say('sys', fill(pickR(TPL.die), { T: cap(e.n) }));
   led().kills++;
   if (e.traitor) { setFlag('ally_slain'); const a = run.adv.npcs.ally; if (a) a.alive = false; deed('Killed the traitor ' + e.n); }
+  if (e.retId) { const r = run.adv.npcs[e.retId]; if (r) r.alive = false; setFlag('ret_slain'); deed('Settled the score with ' + e.n); }
+  if (e.key === 'traitor') settleBetrayer(e.n, 'slain');
   if (e.boss) {
     cb.enemies.forEach((x) => { if (x !== e && x.hp > 0) { x.hp = 0; } });
   }
@@ -518,12 +526,15 @@ function down() {
   const cb = run.combat;
   const boss = cb ? cb.boss : run.adv.rooms[run.roomId].type === 'boss';
   const room = run.adv.rooms[cb ? cb.roomId : run.roomId];
+  const foes = cb ? cb.enemies.filter((e) => e.hp > 0) : [];
+  let how = '';
   run.combat = null;
   run.phase = 'room';
   say('head', 'You fall');
   hero.hp = 0;
   if (!S.settings.forgiving) {
     const r = deathSaves();
+    how = r.out;
     say('sys', 'Death saves: ' + r.marks.join(' ') + ' — ' + (r.out === 'dead' ? 'you do not rise.' : r.out === 'revived' ? 'a surge of will brings you back.' : 'you stabilize.'));
     if (r.out === 'dead') { hero.alive = false; run.phase = 'dead'; finishAdventure('death'); return; }
   }
@@ -537,6 +548,7 @@ function down() {
   setFlag('defeated');
   deed('Was left for dead in the ' + room.name);
   say('sys', 'You are left for dead. You wake later with 1 HP, a lighter purse' + (lost ? ' (−' + lost + ' gold)' : '') + ', and a potion fewer.');
+  rememberDefeat(room, foes, how);
   if (boss) { finishAdventure('defeat'); return; }
   narr('Darkness, then pain, then a cold floor under your cheek. Whoever beat you did not stay to finish it.', factsFor('defeat', 'You were beaten and left for dead, and wake alone later.'));
   run.cur.resolved = true;

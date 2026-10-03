@@ -27,6 +27,9 @@ function heroMarkdown(h) {
   const L = [];
   L.push('---', 'name: ' + h.name, 'species: ' + SPECIES[h.species].n, 'class: ' + CLASSES[h.cls].n, 'level: ' + h.level, 'drive: ' + DRIVES[h.drive].n, 'background: ' + BACKGROUNDS[h.bg].n, 'adventures: ' + h.adventures, '---', '', '# ' + h.name, '', '## Backstory', h.story ? h.story : '_Nothing written yet._', '', '## Threads');
   if (h.legacy.length) h.legacy.forEach((l) => L.push('- ' + l.t.replace('_', ' ') + ': ' + l.name)); else L.push('- none yet');
+  L.push('', '## Memories');
+  if (!(h.memories || []).length) L.push('_None yet._');
+  (h.memories || []).forEach((m) => L.push('- (' + (MEM_KIND[m.kind] || m.kind).toLowerCase() + (m.who ? ', ' + m.who : '') + (m.resolved ? ', ' + m.resolved : '') + ') ' + m.text + (m.adv ? ' [' + m.adv + ']' : '')));
   L.push('', '## Chronicle');
   if (!h.chronicle.length) L.push('_No adventures yet._');
   h.chronicle.forEach((c) => { L.push('### ' + c.title + ' (' + c.end + ', level ' + c.level + ')'); c.deeds.forEach((d0) => L.push('- ' + d0)); L.push(''); });
@@ -68,6 +71,7 @@ function viewHeroes() {
   if (!S.heroes.length) h += '<p class="dim">No heroes yet. Create one to begin.</p>';
   S.heroes.forEach((x) => {
     h += '<div class="card"><h3>' + esc(x.name) + '</h3><div class="dim small">' + SPECIES[x.species].n + ' ' + CLASSES[x.cls].n + ', level ' + x.level + ' &middot; ' + x.adventures + ' adventure' + (x.adventures === 1 ? '' : 's') + ' &middot; ' + x.gold + ' gold</div>' +
+      ((x.memories || []).length ? '<div class="small dim" style="margin-top:4px">Memories: ' + x.memories.length + '</div>' : '') +
       (x.legacy.length ? '<div class="small" style="margin-top:4px">Threads: ' + x.legacy.map((l) => esc(l.name + ' (' + l.t.replace('_', ' ') + ')')).join(', ') + '</div>' : '') +
       '<div class="row" style="margin-top:8px"><button class="btn" data-a="n:hero:' + x.id + '" style="margin:0">Play</button><button class="btn ghost" data-a="hero:md:' + x.id + '" style="margin:0">Export .md</button><button class="btn danger" data-a="hero:del:' + x.id + '" style="margin:0">Retire</button></div></div>';
   });
@@ -323,16 +327,28 @@ function viewSheet() {
 function attWord(a) { return a >= 2 ? 'devoted' : a === 1 ? 'friendly' : a === 0 ? 'neutral' : a === -1 ? 'wary' : 'hostile'; }
 function journalTabs() {
   const t = V.jtab || 'sum';
-  return '<div class="chips"><button class="chip ' + (t === 'sum' ? 'on' : '') + '" data-a="jt:sum">Summary</button><button class="chip ' + (t === 'log' ? 'on' : '') + '" data-a="jt:log">Full story so far</button></div>';
+  return '<div class="chips"><button class="chip ' + (t === 'sum' ? 'on' : '') + '" data-a="jt:sum">Summary</button><button class="chip ' + (t === 'log' ? 'on' : '') + '" data-a="jt:log">Full story so far</button><button class="chip ' + (t === 'mem' ? 'on' : '') + '" data-a="jt:mem">Memories' + ((hero.memories || []).length ? ' (' + hero.memories.length + ')' : '') + '</button></div>';
 }
 function viewHistory() {
   const parts = run.log.map((e) => '<div class="' + entryCls(e).replace(' live', '') + '">' + esc(e.t) + '</div>');
   return '<div class="log hist">' + parts.join('') + '</div>';
 }
+function viewMemories() {
+  const ms = hero.memories || [];
+  let o = '<div class="small dim" style="margin:8px 0">What ' + esc(hero.name) + ' carries between adventures. The story can bring these back. Edit the wording, or let one go.</div>';
+  if (!ms.length) return o + '<p class="dim">Nothing yet. Betrayals and the moments you are left for dead are remembered here.</p>';
+  ms.slice().reverse().forEach((m) => {
+    o += '<div class="card mem"><div class="small dim">' + esc(MEM_KIND[m.kind] || m.kind) + (m.who ? ' &middot; ' + esc(m.who) : '') + (m.adv ? ' &middot; ' + esc(m.adv) : '') + (m.resolved ? ' &middot; settled' : '') + '</div>' +
+      '<textarea data-bind="mem:' + m.id + '" maxlength="240" aria-label="Memory">' + esc(m.text) + '</textarea>' +
+      '<button class="btn danger" data-a="mem:del:' + m.id + '" style="margin:6px 0 0">Let it go</button></div>';
+  });
+  return o;
+}
 function viewJournal() {
   if (!run) return topbar('Journal') + '<p class="dim">No adventure in progress.</p>';
   const adv = run.adv, c = adv.clock;
   if (V.jtab === 'log') return topbar(esc(adv.titleFull)) + journalTabs() + viewHistory();
+  if (V.jtab === 'mem') return topbar(esc(adv.titleFull)) + journalTabs() + viewMemories();
   let o = topbar(esc(adv.titleFull)) + journalTabs();
   o += '<div class="card small">' + esc(adv.pitch) + '</div>';
   o += '<dl class="kv"><dt>Task</dt><dd>' + esc(adv.goal) + '</dd><dt>Clock</dt><dd>' + esc(c.label) + ': ' + c.at + ' / ' + c.max + '</dd><dt>Alert</dt><dd>' + led().alert + ' / 5</dd><dt>Clues</dt><dd>' + led().clues + '</dd><dt>Seed</dt><dd>' + esc(adv.seed) + '</dd></dl>';
@@ -474,6 +490,7 @@ function onAct(a, el) {
   /* play */
   if (k === 'sheet') { openModal('sheet'); return; }
   if (k === 'journal') { V.jtab = 'sum'; openModal('journal'); return; }
+  if (k === 'mem' && p[1] === 'del') { if (confirm('Let this memory go? The story will no longer bring it back.')) { hero.memories = (hero.memories || []).filter((m) => m.id !== p[2]); save(); renderModal(); } return; }
   if (k === 'jt') { V.jtab = p[1]; V.histJump = p[1] === 'log'; renderModal(); return; }
   if (k === 'ideas') { makeIdeas(); return; }
   if (k === 'didea') { say0(); withDice(() => doorIdea(Number(p[1]))); return; }
@@ -514,7 +531,7 @@ function loadState() {
   s.settings = Object.assign(defaultSettings(), s.settings || {});
   s.fallen = s.fallen || [];
   if (s.run && Array.isArray(s.run.log)) s.run.log.forEach((e) => { e.wait = false; e.live = false; });
-  s.heroes.forEach((h) => { h.inv = h.inv || { potion: 2 }; h.gear = h.gear || []; h.legacy = h.legacy || []; h.chronicle = h.chronicle || []; h.res = h.res || resMax(h); });
+  s.heroes.forEach((h) => { h.inv = h.inv || { potion: 2 }; h.gear = h.gear || []; h.legacy = h.legacy || []; h.chronicle = h.chronicle || []; h.memories = h.memories || []; h.res = h.res || resMax(h); });
   return s;
 }
 ui.onChange = () => {
@@ -545,6 +562,12 @@ function wire() {
   });
   document.addEventListener('change', (ev) => {
     const t = ev.target;
+    const bind = t && t.getAttribute ? t.getAttribute('data-bind') : null;
+    if (bind && bind.indexOf('mem:') === 0 && hero) {
+      const m = (hero.memories || []).find((x) => x.id === bind.slice(4));
+      const v = t.value.trim().slice(0, 240);
+      if (m && v) { m.text = v; m.edited = true; save(); toast('Memory saved.'); }
+    }
     if (t && t.getAttribute && t.getAttribute('data-bind') === 'story' && hero) { hero.story = t.value.slice(0, 400); save(); toast('Backstory saved.'); }
     if (t && t.id === 'imp' && t.files && t.files[0]) {
       const r = new FileReader();
@@ -586,5 +609,5 @@ async function boot() {
   }
 }
 window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, keywordIntent, parseIntent, setRand: (f) => { dRand.f = f; },
-  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
+  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, down, applyFx, killEnemy, leaveRun, heroMarkdown, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

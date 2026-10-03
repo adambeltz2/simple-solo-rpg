@@ -61,7 +61,7 @@ function newHero(o) {
     id: 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1e5).toString(36),
     name: o.name || pickR(HERO_NAMES), species: o.species, cls: o.cls, bg: o.bg, drive: o.drive,
     level: 1, abil: Object.assign({}, c.stats), gold: 0, inv: { potion: 2 }, gear: [], res: {}, fortune: 2,
-    legacy: [], chronicle: [], alive: true, adventures: 0, hp: 0, hpMax: 0,
+    legacy: [], chronicle: [], memories: [], alive: true, adventures: 0, hp: 0, hpMax: 0,
   };
   recalc(h);
   h.hp = h.hpMax;

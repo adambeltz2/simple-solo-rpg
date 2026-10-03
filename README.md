@@ -18,6 +18,9 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
   allies and original ASCII portraits.
 - Heroes persist between adventures: milestone leveling to 5, a chronicle, and
   consequences (a spared villain can return in a later adventure).
+- Heroes remember: being left for dead or betrayed is saved as a memory (Journal →
+  Memories, editable) that the story can bring back, such as a betrayer who returns
+  in your next adventure.
 - Read back at any time: scroll up in the story (a "↓ Latest" button returns you), or
   open the Journal's "Full story so far" tab.
 - Dice are yours if you want them: Settings → Dice lets the game roll for you, ask
@@ -50,6 +53,7 @@ offline. Saves live in the browser's local storage; use Export in Settings for b
   `build.py`, which assembles them into `index.html`.
 - `tools/test.js` — jsdom bot that plays full adventures through the real UI
   (`node tools/test.js N seedbase [ai] [smart] [dump]`).
+- `tools/memory.js` — targeted test of hero memories and the returning betrayer (`node tools/memory.js`).
 - `tools/sim.js` — combat balance simulator (`node tools/sim.js N kinds`).
 
 ## Develop

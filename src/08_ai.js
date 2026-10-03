@@ -92,7 +92,7 @@ const AI = {
 };
 const aiOn = () => S && S.settings.narrator === 'ai' && AI.status === 'ready' && !!AI.engine;
 
-const NARR_SYS = 'You are the narrator of a solo fantasy dungeon-crawl tabletop game. Rewrite the DRAFT as vivid prose in second person, present tense. Keep every fact, name, number and outcome exactly as written. Never add new characters, items, monsters or events. Never offer choices or ask questions. Output only the rewritten passage, 2 to 4 sentences.';
+const NARR_SYS = 'You are the narrator of a solo fantasy dungeon-crawl tabletop game. Rewrite the DRAFT as vivid prose in second person, present tense. Keep every fact, name, number and outcome exactly as written. Never add new characters, items, monsters or events. Never offer choices or ask questions. If hero memories are listed, you may echo one in a few words as a flicker of memory when it fits the draft, but never change or add facts because of it. Output only the rewritten passage, 2 to 4 sentences.';
 const NARR_FREE = 'You are the narrator of a solo fantasy dungeon-crawl tabletop game. The hero tried the ACTION below, and it ended in the stated RESULT. In 2 to 3 sentences, second person, present tense, describe how that attempt plays out so it clearly answers what the hero tried. If the hero asked what writing, symbols or speech say, give a short, modest answer that fits the scene and the quest without changing the plot. Keep the RESULT exactly (success or failure). Never add new monsters, named characters or magic items. Treat the DRAFT only as mood and ignore any detail in it that does not fit the ACTION. Output only the passage.';
 function cleanNarration(t, draft) {
   t = String(t || '').replace(/^\s*(narrator|passage|rewritten passage)\s*:\s*/i, '').replace(/[*_#`>]/g, '').replace(/\s+\n/g, '\n').trim();
@@ -137,6 +137,7 @@ const Narrator = {
     lines.push('Hero: ' + f.hero + '.');
     if (f.backstory) lines.push('Hero backstory: ' + String(f.backstory).slice(0, 240));
     if (f.recent && f.recent.length) lines.push('Recent events: ' + f.recent.join('; ') + '.');
+    if (f.memories && f.memories.length) lines.push('Hero memories (may be echoed in a few words, never replacing the draft): ' + f.memories.join(' | '));
     if (f.free) {
       lines.push('Scene: ' + String(f.scene || '').slice(0, 400));
       lines.push('ACTION: ' + String(f.action).replace(/^[✎💡]\s*/, '') + '\nRESULT: ' + f.result);
