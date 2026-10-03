@@ -397,7 +397,10 @@ function viewMemories() {
   ms.slice().reverse().forEach((m) => {
     o += '<div class="card mem"><div class="small dim">' + esc(MEM_KIND[m.kind] || m.kind) + (m.who ? ' &middot; ' + esc(m.who) : '') + (m.adv ? ' &middot; ' + esc(m.adv) : '') + (m.resolved ? ' &middot; settled' : '') + '</div>' +
       '<textarea data-bind="mem:' + m.id + '" maxlength="240" aria-label="Memory">' + esc(m.text) + '</textarea>' +
-      '<button class="btn danger" data-a="mem:del:' + m.id + '" style="margin:6px 0 0">Let it go</button></div>';
+      (V.memDraft && V.memDraft.id === m.id
+        ? '<div class="small dim" style="margin-top:8px">Retold in your voice:</div><div class="memdraft">' + esc(V.memDraft.text) + '</div><div class="row"><button class="btn primary" data-a="mem:keep:' + m.id + '" style="margin:6px 0 0">Keep this</button><button class="btn ghost" data-a="mem:drop:' + m.id + '" style="margin:6px 0 0">Discard</button></div>'
+        : '<div class="row">' + (aiOn() ? '<button class="btn ghost" data-a="mem:retell:' + m.id + '" style="margin:6px 0 0" ' + (V.memBusy ? 'disabled' : '') + '>' + (V.memBusy === m.id ? 'Retelling…' : 'Retell in my voice') + '</button>' : '') + '<button class="btn danger" data-a="mem:del:' + m.id + '" style="margin:6px 0 0">Let it go</button></div>') +
+      '</div>';
   });
   return o;
 }
@@ -554,6 +557,13 @@ function onAct(a, el) {
   /* play */
   if (k === 'sheet') { openModal('sheet'); return; }
   if (k === 'journal') { V.jtab = 'sum'; openModal('journal'); return; }
+  if (k === 'mem' && p[1] === 'retell') { retellMemory(p[2]); return; }
+  if (k === 'mem' && p[1] === 'keep') {
+    const m = (hero.memories || []).find((x) => x.id === p[2]);
+    if (m && V.memDraft && V.memDraft.id === m.id) { m.text = V.memDraft.text.slice(0, 240); m.edited = true; save(); toast('Memory saved.'); }
+    V.memDraft = null; renderModal(); return;
+  }
+  if (k === 'mem' && p[1] === 'drop') { V.memDraft = null; renderModal(); return; }
   if (k === 'mem' && p[1] === 'del') { if (confirm('Let this memory go? The story will no longer bring it back.')) { hero.memories = (hero.memories || []).filter((m) => m.id !== p[2]); save(); renderModal(); } return; }
   if (k === 'jt') { V.jtab = p[1]; V.histJump = p[1] === 'log'; renderModal(); return; }
   if (k === 'ideas') { makeIdeas(); return; }
@@ -673,5 +683,5 @@ async function boot() {
   }
 }
 window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, keywordIntent, parseIntent, setRand: (f) => { dRand.f = f; },
-  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, down, applyFx, killEnemy, leaveRun, heroMarkdown, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
+  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, down, applyFx, memoryIdeas, dwellMemory, killEnemy, leaveRun, heroMarkdown, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

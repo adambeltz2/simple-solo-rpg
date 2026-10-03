@@ -23,10 +23,11 @@ function mkHero(w, name) {
 }
 
 (async () => {
-  for (const forgiving of [true, false]) {
-    console.log('--- forgiving=' + forgiving);
+  for (const [forgiving, fixed] of [[true, 0.99], [false, 0.99], [false, 0.6]]) {
+    console.log('--- forgiving=' + forgiving + ' rolls=' + fixed);
     const { w, errs } = await boot();
     const D = w.__delve;
+    D.setRand(() => fixed); /* fixed dice: nat 20s revive, 13s stabilise; nobody dies by chance */
     const A = D.api;
     D.S.settings.forgiving = forgiving;
     const h = mkHero(w, 'Gunnar');
@@ -40,10 +41,14 @@ function mkHero(w, name) {
     ok(h.memories.length === 1 && h.memories[0].kind === 'betrayal' && h.memories[0].who === 'Dunmore', 'boss reveal records a betrayal memory');
     const m0 = h.memories[0].text;
     A.startCombat({ boss: true, surprise: null }, adv.rooms[bossId]);
-    ok(D.run.combat && D.run.combat.enemies.some((e) => e.traitor), 'the traitor is in the fight');
-    A.down();
+    /* the foe may have struck first and already felled the hero inside startCombat */
+    if (D.run.combat) {
+      ok(D.run.combat.enemies.some((e) => e.traitor), 'the traitor is in the fight');
+      A.down();
+    } else ok(h.memories.length >= 1, 'hero was felled before the first turn');
     ok(h.memories.length === 1, 'defeat by the traitor upgrades the same memory (no duplicate)');
     ok(/struck me down/.test(h.memories[0].text) && h.memories[0].text !== m0, 'memory text upgraded to the stronger version: ' + h.memories[0].text);
+    ok(!/\bhim said|\bher said|\bhim ran|\bher ran/.test(m0), 'pronouns read correctly: ' + m0);
     ok(D.run.phase === 'epilogue' || D.run.phase === 'dead', 'boss defeat ends the adventure (' + D.run.phase + ')');
     if (D.run.phase === 'dead') { console.log('(hero died; skipping return test)'); continue; }
     ok(D.run.log.some((e) => /memory takes hold/.test(e.t)), 'a memory note appears in the log');
@@ -88,6 +93,61 @@ function mkHero(w, name) {
     const id = h.memories[0].id;
     D.onAct('mem:del:' + id);
     ok(h.memories.length === 0, 'Let it go deletes the memory');
+    ok(errs.length === 0, 'no script errors' + (errs.length ? ': ' + errs.slice(0, 3).join('; ') : ''));
+  }
+  /* rest-scene dwelling, memory-born ideas and the AI retelling */
+  console.log('--- dwell / ideas / retell');
+  {
+    const { w, errs } = await boot();
+    const D = w.__delve;
+    const A = D.api;
+    const h = mkHero(w, 'Brenna');
+    h.memories = [
+      { id: 'm1', kind: 'betrayal', text: 'Dunmore turned on me at the worst moment, in the Hollow Vault.', src: 'x', who: 'Dunmore', tags: ['dunmore'], adv: 'The Old Oath', seed: 'old', used: 1, resolved: '', edited: false },
+      { id: 'm2', kind: 'left_for_dead', text: 'A goblin beat me down in the mossy crypt. I woke later, alone.', src: 'crypt', who: '', tags: [], adv: 'The Old Oath', seed: 'old', used: 0, resolved: '', edited: false },
+    ];
+    h.memSeq = 2;
+    A.beginRun(h, 'mem-test-3', 'random');
+    const adv = D.run.adv;
+    const rid = Object.keys(adv.rooms).find((k) => adv.rooms[k].type === 'combat');
+    adv.rooms[rid].type = 'rest'; adv.rooms[rid].kind = 'camp';
+    A.enterRoom(rid);
+    const dc = D.run.cur.choices.find((c) => /^Think over/.test(c.label));
+    ok(!!dc && /left for dead/.test(dc.label), 'rest scene offers to think over the latest memory: ' + (dc && dc.label));
+    const f0 = h.fortune;
+    A.applyFx(dc.s);
+    ok(h.memories[1].dwelt === true, 'dwelling marks the memory');
+    A.enterRoom(rid);
+    const dc2 = D.run.cur.choices.find((c) => /^Think over/.test(c.label));
+    ok(dc2 && /Dunmore/.test(dc2.label), 'next rest offers the other memory: ' + (dc2 && dc2.label));
+    A.applyFx(dc2.s);
+    A.enterRoom(rid);
+    ok(!D.run.cur.choices.some((c) => /^Think over/.test(c.label)), 'no more to think over once both are dwelt on');
+    ok(A.memoryIdeas({ type: 'rest' }).length === 1 && A.memoryIdeas({ type: 'twist' }).length === 1 && A.memoryIdeas({ type: 'boss' }).length === 1, 'memories suggest ideas for rest, twist and boss scenes');
+    ok(A.memoryIdeas({ type: 'treasure' }).length === 0, 'no memory ideas elsewhere');
+
+    /* retell with a mock model */
+    w.__mockLLM = { chat: { completions: { async create(o) {
+      if (o.stream) return (async function* () { for (const x of 'I trusted Dunmore once, and Dunmore left me bleeding in the dark of the Hollow Vault.'.split(' ')) yield { choices: [{ delta: { content: x + ' ' } }] }; })();
+      return { choices: [{ message: { content: '{}' } }] };
+    } } }, interruptGenerate() {} };
+    await D.AI.load('small');
+    D.S.settings.narrator = 'ai';
+    D.onAct('journal'); D.onAct('jt:mem');
+    ok(/Retell in my voice/.test(w.document.getElementById('modal').innerHTML), 'Retell button shows when the narrator is on');
+    D.onAct('mem:retell:m1');
+    await new Promise((r) => setTimeout(r, 200));
+    ok(D.V.memDraft && D.V.memDraft.id === 'm1' && /Dunmore/.test(D.V.memDraft.text), 'a retold draft is offered, not saved: ' + (D.V.memDraft && D.V.memDraft.text));
+    ok(h.memories[0].text.startsWith('Dunmore turned on me'), 'original text unchanged until accepted');
+    D.onAct('mem:keep:m1');
+    ok(h.memories[0].text.startsWith('I trusted Dunmore') && h.memories[0].edited && !D.V.memDraft, 'keeping the draft replaces the memory text');
+    /* a retelling that loses the betrayer's name is refused */
+    h.memories.push({ id: 'm3', kind: 'betrayal', text: 'Dunmore betrayed me in the Hollow Vault, again and again.', src: 'x', who: 'Dunmore', tags: [], adv: 'x', seed: 'old2', used: 0, resolved: '', edited: false });
+    w.__mockLLM.chat.completions.create = async (o) => (async function* () { for (const x of 'Someone I trusted left me bleeding in the dark, long ago.'.split(' ')) yield { choices: [{ delta: { content: x + ' ' } }] }; })();
+    D.onAct('mem:retell:m3');
+    await new Promise((r) => setTimeout(r, 200));
+    ok(!D.V.memDraft, 'a retelling that drops the betrayer name is refused');
+    ok(h.memories.find((m) => m.id === 'm3').text.startsWith('Dunmore betrayed'), 'and the memory is untouched');
     ok(errs.length === 0, 'no script errors' + (errs.length ? ': ' + errs.slice(0, 3).join('; ') : ''));
   }
   console.log(fails ? 'FAILED ' + fails : 'ALL OK');

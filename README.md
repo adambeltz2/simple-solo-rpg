@@ -20,7 +20,9 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
   consequences (a spared villain can return in a later adventure).
 - Heroes remember: being left for dead or betrayed is saved as a memory (Journal →
   Memories, editable) that the story can bring back, such as a betrayer who returns
-  in your next adventure.
+  in your next adventure. At rest stops you can sit with a memory for a little
+  steadiness, and with the on-device narrator on you can have a memory retold in your
+  hero's voice (you keep or discard the retelling).
 - Read back at any time: scroll up in the story (a "↓ Latest" button returns you), or
   open the Journal's "Full story so far" tab.
 - Dice are yours if you want them: Settings → Dice lets the game roll for you, or

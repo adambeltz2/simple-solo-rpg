@@ -309,9 +309,10 @@ function cleanIdea(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 function poolIdeas(room, n, avoid) {
+  const mine = memoryIdeas(room).filter((p) => !avoid.has(p[0].toLowerCase()));
   const pool = (IDEA_POOL[room.type] || IDEA_POOL.lore).filter((p) => !avoid.has(p[0].toLowerCase()));
-  /* favour what this hero is good at, with some chance of the unexpected */
-  const scored = pool.map((p) => ({ p, k: skillMod(hero, p[1]) + rnd() * 4 })).sort((a, b) => b.k - a.k);
+  /* favour what this hero is good at, with some chance of the unexpected; a memory-born idea gets a lift */
+  const scored = mine.map((p) => ({ p, k: 10 + rnd() })).concat(pool.map((p) => ({ p, k: skillMod(hero, p[1]) + rnd() * 4 }))).sort((a, b) => b.k - a.k);
   const out = [], seen = new Set();
   scored.forEach((x) => { if (out.length < n && !seen.has(x.p[1])) { seen.add(x.p[1]); out.push({ label: x.p[0], approach: x.p[1] }); } });
   scored.forEach((x) => { if (out.length < n && !out.some((o) => o.label === x.p[0])) out.push({ label: x.p[0], approach: x.p[1] }); });
@@ -338,6 +339,8 @@ async function aiIdeas(room, avoid) {
   }
   lines.push('Hero: ' + hero.name + ', ' + SPECIES[hero.species].n + ' ' + CLASSES[hero.cls].n + ', ' + BACKGROUNDS[hero.bg].n + '.');
   if (hero.story) lines.push('Hero backstory: ' + String(hero.story).slice(0, 200));
+  const mems = memoriesFor(room && ['rest', 'twist', 'boss'].includes(room.type) ? 'twist' : 'room', room);
+  if (mems.length) lines.push('Hero memories (may inspire one idea): ' + mems.join(' | '));
   lines.push('Goal of the quest: ' + run.adv.goal + '.');
   lines.push('Options the player already has (do not repeat them): ' + (room ? run.cur.choices.filter((c) => c.id !== 'continue' && c.id !== 'search').map((c) => c.label) : doorsContext()).join('; ') + '.');
   const out = await AI.chat([
@@ -404,4 +407,24 @@ function doorIdea(i) {
   narr(text, factsFor('outcome', text, { action: c.label, result: res.ok ? 'success' : 'failure', place: 'a fork in the passage' }));
   save();
   changed();
+}
+
+/* ---------- retell a memory in the hero's voice (the player accepts, edits or discards it) ---------- */
+const MEM_SYS = 'You rewrite a short memory for a fantasy hero as one or two sentences in the first person, past tense, in a plain, haunted voice. Keep every name, place and fact exactly as written and add nothing new. Output only the memory.';
+async function retellMemory(id) {
+  const m = (hero.memories || []).find((x) => x.id === id);
+  if (!m || !aiOn() || V.memBusy) return;
+  if (Narrator.running) { toast('The narrator is still writing. Try again in a moment.'); return; }
+  V.memBusy = id;
+  V.memDraft = null;
+  renderModal();
+  try {
+    const out = await AI.chat([{ role: 'system', content: MEM_SYS }, { role: 'user', content: 'Hero: ' + hero.name + ', ' + SPECIES[hero.species].n + ' ' + CLASSES[hero.cls].n + '.\nMemory: ' + m.text }], { max: 90, temp: 0.8 });
+    let t = cleanNarration(out, m.text);
+    if (t && t.length > 240) t = null;
+    if (t && m.who && t.indexOf(m.who) < 0) t = null;
+    if (t) V.memDraft = { id, text: t }; else toast('The narrator could not find the words. Your memory is unchanged.');
+  } catch (e) { toast('The narrator could not retell it. Your memory is unchanged.'); }
+  V.memBusy = null;
+  renderModal();
 }

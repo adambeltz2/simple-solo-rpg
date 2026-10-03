@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] - 2026-10-02
+
+### Added
+
+- Rest stops let you sit with a memory: "Think over …" (an Insight check) turns a hard memory into steadier nerves (+1 Fortune and a little rest), and each memory can be worked through once. A failure just costs time.
+- Your memories now suggest ideas for "Think of something else": remembering at a rest stop, looking for the signs of a betrayal at a twist, and guarding against how you fell last time at a boss. With the on-device AI on, it also sees your relevant memories when it writes ideas.
+- With the on-device narrator on, a memory in the Journal can be retold in your hero's voice. You see the retelling next to your original and choose Keep this or Discard; the retelling is refused if it loses a betrayer's name.
+
 ## [1.4.0] - 2026-10-02
 
 ### Added

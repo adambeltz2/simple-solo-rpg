@@ -81,9 +81,10 @@ function addMemory(kind, text, o) {
 }
 function rememberBetrayal(a, how) {
   const adv = run.adv;
+  const sub = { her: 'she', him: 'he', them: 'they' }[a.pr && a.pr.o] || 'they';
   const t = {
-    reveal: a.name + ' turned on me at the worst moment, in ' + adv.site + '. "Nothing personal," ' + a.pr.o + ' said.',
-    fled: a.name + ' was working for the enemy all along. When I called it out, ' + a.pr.o + ' ran.',
+    reveal: a.name + ' turned on me at the worst moment, in ' + adv.site + '. "Nothing personal," ' + sub + ' said.',
+    fled: a.name + ' was working for the enemy all along. When I called it out, ' + sub + ' ran.',
     caught: a.name + ' was working for the enemy all along. I struck first.',
   }[how];
   if (!t) return null;
@@ -113,6 +114,25 @@ function settleBetrayer(name, how) {
     m.resolved = how;
     if (!m.edited) m.text += { slain: ' I ended it with steel.', forgiven: ' Later, I chose to give them another chance.', answered: ' Later, I made them tell me why.' }[how] || '';
   });
+}
+/* a memory the hero can sit with at a rest stop (once each) */
+function dwellMemory() {
+  const ms = (hero.memories || []).filter((m) => !m.dwelt);
+  if (!ms.length) return null;
+  const m = ms[ms.length - 1];
+  const label = m.kind === 'betrayal' ? 'Think over ' + (m.who ? m.who + "'s" : 'the') + ' betrayal' : 'Think over the night you were left for dead';
+  return { m, label };
+}
+/* extra improvisation ideas the hero's memories suggest for this scene */
+function memoryIdeas(room) {
+  const ms = hero.memories || [];
+  const out = [];
+  const bet = ms.find((m) => m.kind === 'betrayal');
+  const fell = ms.find((m) => m.kind === 'left_for_dead');
+  if (room.type === 'rest' && ms.length) out.push(['Let yourself remember, and learn from it', 'insight']);
+  if (room.type === 'twist' && bet) out.push(['Remember how a betrayal felt, and look for the signs', 'insight']);
+  if (room.type === 'boss' && fell) out.push(['Remember how you fell before, and guard against it', 'insight']);
+  return out;
 }
 /* the few memories worth handing to the narrator for this moment */
 function memoriesFor(kind, room) {
@@ -216,6 +236,10 @@ function applyFx(fx, opts) {
   if (fx.ally === 'betray') {
     const a = run.adv.npcs.ally;
     if (a) { a.betrayer = true; a.active = false; rememberBetrayal(a, fx.combat ? 'caught' : 'fled'); }
+  }
+  if (fx.dwell) {
+    const m = (hero.memories || []).find((x) => x.id === fx.dwell);
+    if (m) m.dwelt = true;
   }
   if (fx.settle) {
     const r = run.adv.npcs.ret;
@@ -346,6 +370,8 @@ function buildChoices(room) {
     add(C('Rest lightly, keep watch', { kind: 'auto', s: { rest: 0.3, clock: 1, alert: -1 }, ok: 'You doze with one eye open. Not much, but enough.' }));
     if (room.kind === 'shrine') add(C('Pray at the shrine', Object.assign(stat('religion', dcFor(L, 0)), { kind: 'check', style: 'lore', s: { fortune: 2, rest: 0.2 }, f: { clock: 1 }, ok: 'Something old and kind answers. You feel lucky, and a little less alone.', no: 'Silence answers. It is a very large silence.' })));
     else add(C('Tend wounds and tinker with gear', Object.assign(stat('medicine', dcFor(L, 0)), { kind: 'check', style: 'careful', s: { rest: 0.5, clock: 1 }, f: { rest: 0.2, clock: 1 }, ok: 'You patch yourself up properly.', no: 'You do what you can.' })));
+    const dm = dwellMemory();
+    if (dm) add(C(dm.label, Object.assign(stat('insight', dcFor(L, 0)), { kind: 'check', style: 'careful', s: { fortune: 1, rest: 0.2, clock: 1, dwell: dm.m.id, deed: 'Made peace with a hard memory' }, f: { clock: 1, dwell: dm.m.id }, ok: 'You turn it over until it stops cutting. What is left is something you can use. You feel steadier.', no: 'It will not settle. You lie awake with it, and the hours slip by.' })));
     add(C('Press on without resting', { kind: 'auto', s: {}, ok: 'You do not stop. There is not time.' }));
   } else if (T === 'social') {
     buildSocial(room, ch, add);

@@ -113,7 +113,7 @@ ul.tight{margin:4px 0 8px;padding-left:20px}ul.tight li{margin:2px 0}
 .opt.ideas{border-style:dashed;border-color:var(--gold)}
 .opt.ideas small{display:block;margin-top:2px;color:var(--dim)}
 .ver{text-align:center;color:var(--dim);font-size:.75rem;margin:22px 0 6px;opacity:.8}
-.card.mem textarea{min-height:64px;margin-top:6px}
+.card.mem textarea{min-height:92px;margin-top:6px}
 
 .dstage{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:18px 0 6px}
 .die{width:84px;height:84px;display:flex;align-items:center;justify-content:center;border:2px solid var(--gold);border-radius:16px;background:var(--panel2);color:var(--gold);font-family:var(--serif,Georgia,serif);font-size:2rem;font-weight:700;box-shadow:0 3px 14px rgba(0,0,0,.55)}
@@ -125,6 +125,7 @@ ul.tight{margin:4px 0 8px;padding-left:20px}ul.tight li{margin:2px 0}
 @keyframes dtumble{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.08)}100%{transform:rotate(360deg) scale(1)}}
 @keyframes dland{0%{transform:scale(1.25)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.die.tumble,.die.landed{animation:none}}
+.memdraft{margin:4px 0;padding:10px 12px;border-left:3px solid var(--gold);background:var(--panel2);border-radius:8px;font-style:italic}
 
 </style>
 </head>
@@ -181,7 +182,7 @@ function RNG(seed) {
 }
 
 /* table dice (not seeded: every play-through rolls fresh) */
-const APP_VERSION = '1.4.0', APP_BUILD = '2026-10-02'; // filled in by src/build.py
+const APP_VERSION = '1.5.0', APP_BUILD = '2026-10-02'; // filled in by src/build.py
 const verLine = () => 'Delve v' + APP_VERSION + ' · built ' + APP_BUILD;
 const dRand = { f: Math.random };
 /* Manual-dice state (see 04b_dice.js). tape: every random draw of the action in progress, so it can be replayed. */
@@ -1213,9 +1214,10 @@ function addMemory(kind, text, o) {
 }
 function rememberBetrayal(a, how) {
   const adv = run.adv;
+  const sub = { her: 'she', him: 'he', them: 'they' }[a.pr && a.pr.o] || 'they';
   const t = {
-    reveal: a.name + ' turned on me at the worst moment, in ' + adv.site + '. "Nothing personal," ' + a.pr.o + ' said.',
-    fled: a.name + ' was working for the enemy all along. When I called it out, ' + a.pr.o + ' ran.',
+    reveal: a.name + ' turned on me at the worst moment, in ' + adv.site + '. "Nothing personal," ' + sub + ' said.',
+    fled: a.name + ' was working for the enemy all along. When I called it out, ' + sub + ' ran.',
     caught: a.name + ' was working for the enemy all along. I struck first.',
   }[how];
   if (!t) return null;
@@ -1245,6 +1247,25 @@ function settleBetrayer(name, how) {
     m.resolved = how;
     if (!m.edited) m.text += { slain: ' I ended it with steel.', forgiven: ' Later, I chose to give them another chance.', answered: ' Later, I made them tell me why.' }[how] || '';
   });
+}
+/* a memory the hero can sit with at a rest stop (once each) */
+function dwellMemory() {
+  const ms = (hero.memories || []).filter((m) => !m.dwelt);
+  if (!ms.length) return null;
+  const m = ms[ms.length - 1];
+  const label = m.kind === 'betrayal' ? 'Think over ' + (m.who ? m.who + "'s" : 'the') + ' betrayal' : 'Think over the night you were left for dead';
+  return { m, label };
+}
+/* extra improvisation ideas the hero's memories suggest for this scene */
+function memoryIdeas(room) {
+  const ms = hero.memories || [];
+  const out = [];
+  const bet = ms.find((m) => m.kind === 'betrayal');
+  const fell = ms.find((m) => m.kind === 'left_for_dead');
+  if (room.type === 'rest' && ms.length) out.push(['Let yourself remember, and learn from it', 'insight']);
+  if (room.type === 'twist' && bet) out.push(['Remember how a betrayal felt, and look for the signs', 'insight']);
+  if (room.type === 'boss' && fell) out.push(['Remember how you fell before, and guard against it', 'insight']);
+  return out;
 }
 /* the few memories worth handing to the narrator for this moment */
 function memoriesFor(kind, room) {
@@ -1348,6 +1369,10 @@ function applyFx(fx, opts) {
   if (fx.ally === 'betray') {
     const a = run.adv.npcs.ally;
     if (a) { a.betrayer = true; a.active = false; rememberBetrayal(a, fx.combat ? 'caught' : 'fled'); }
+  }
+  if (fx.dwell) {
+    const m = (hero.memories || []).find((x) => x.id === fx.dwell);
+    if (m) m.dwelt = true;
   }
   if (fx.settle) {
     const r = run.adv.npcs.ret;
@@ -1478,6 +1503,8 @@ function buildChoices(room) {
     add(C('Rest lightly, keep watch', { kind: 'auto', s: { rest: 0.3, clock: 1, alert: -1 }, ok: 'You doze with one eye open. Not much, but enough.' }));
     if (room.kind === 'shrine') add(C('Pray at the shrine', Object.assign(stat('religion', dcFor(L, 0)), { kind: 'check', style: 'lore', s: { fortune: 2, rest: 0.2 }, f: { clock: 1 }, ok: 'Something old and kind answers. You feel lucky, and a little less alone.', no: 'Silence answers. It is a very large silence.' })));
     else add(C('Tend wounds and tinker with gear', Object.assign(stat('medicine', dcFor(L, 0)), { kind: 'check', style: 'careful', s: { rest: 0.5, clock: 1 }, f: { rest: 0.2, clock: 1 }, ok: 'You patch yourself up properly.', no: 'You do what you can.' })));
+    const dm = dwellMemory();
+    if (dm) add(C(dm.label, Object.assign(stat('insight', dcFor(L, 0)), { kind: 'check', style: 'careful', s: { fortune: 1, rest: 0.2, clock: 1, dwell: dm.m.id, deed: 'Made peace with a hard memory' }, f: { clock: 1, dwell: dm.m.id }, ok: 'You turn it over until it stops cutting. What is left is something you can use. You feel steadier.', no: 'It will not settle. You lie awake with it, and the hours slip by.' })));
     add(C('Press on without resting', { kind: 'auto', s: {}, ok: 'You do not stop. There is not time.' }));
   } else if (T === 'social') {
     buildSocial(room, ch, add);
@@ -2903,9 +2930,10 @@ function cleanIdea(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 function poolIdeas(room, n, avoid) {
+  const mine = memoryIdeas(room).filter((p) => !avoid.has(p[0].toLowerCase()));
   const pool = (IDEA_POOL[room.type] || IDEA_POOL.lore).filter((p) => !avoid.has(p[0].toLowerCase()));
-  /* favour what this hero is good at, with some chance of the unexpected */
-  const scored = pool.map((p) => ({ p, k: skillMod(hero, p[1]) + rnd() * 4 })).sort((a, b) => b.k - a.k);
+  /* favour what this hero is good at, with some chance of the unexpected; a memory-born idea gets a lift */
+  const scored = mine.map((p) => ({ p, k: 10 + rnd() })).concat(pool.map((p) => ({ p, k: skillMod(hero, p[1]) + rnd() * 4 }))).sort((a, b) => b.k - a.k);
   const out = [], seen = new Set();
   scored.forEach((x) => { if (out.length < n && !seen.has(x.p[1])) { seen.add(x.p[1]); out.push({ label: x.p[0], approach: x.p[1] }); } });
   scored.forEach((x) => { if (out.length < n && !out.some((o) => o.label === x.p[0])) out.push({ label: x.p[0], approach: x.p[1] }); });
@@ -2932,6 +2960,8 @@ async function aiIdeas(room, avoid) {
   }
   lines.push('Hero: ' + hero.name + ', ' + SPECIES[hero.species].n + ' ' + CLASSES[hero.cls].n + ', ' + BACKGROUNDS[hero.bg].n + '.');
   if (hero.story) lines.push('Hero backstory: ' + String(hero.story).slice(0, 200));
+  const mems = memoriesFor(room && ['rest', 'twist', 'boss'].includes(room.type) ? 'twist' : 'room', room);
+  if (mems.length) lines.push('Hero memories (may inspire one idea): ' + mems.join(' | '));
   lines.push('Goal of the quest: ' + run.adv.goal + '.');
   lines.push('Options the player already has (do not repeat them): ' + (room ? run.cur.choices.filter((c) => c.id !== 'continue' && c.id !== 'search').map((c) => c.label) : doorsContext()).join('; ') + '.');
   const out = await AI.chat([
@@ -2998,6 +3028,26 @@ function doorIdea(i) {
   narr(text, factsFor('outcome', text, { action: c.label, result: res.ok ? 'success' : 'failure', place: 'a fork in the passage' }));
   save();
   changed();
+}
+
+/* ---------- retell a memory in the hero's voice (the player accepts, edits or discards it) ---------- */
+const MEM_SYS = 'You rewrite a short memory for a fantasy hero as one or two sentences in the first person, past tense, in a plain, haunted voice. Keep every name, place and fact exactly as written and add nothing new. Output only the memory.';
+async function retellMemory(id) {
+  const m = (hero.memories || []).find((x) => x.id === id);
+  if (!m || !aiOn() || V.memBusy) return;
+  if (Narrator.running) { toast('The narrator is still writing. Try again in a moment.'); return; }
+  V.memBusy = id;
+  V.memDraft = null;
+  renderModal();
+  try {
+    const out = await AI.chat([{ role: 'system', content: MEM_SYS }, { role: 'user', content: 'Hero: ' + hero.name + ', ' + SPECIES[hero.species].n + ' ' + CLASSES[hero.cls].n + '.\nMemory: ' + m.text }], { max: 90, temp: 0.8 });
+    let t = cleanNarration(out, m.text);
+    if (t && t.length > 240) t = null;
+    if (t && m.who && t.indexOf(m.who) < 0) t = null;
+    if (t) V.memDraft = { id, text: t }; else toast('The narrator could not find the words. Your memory is unchanged.');
+  } catch (e) { toast('The narrator could not retell it. Your memory is unchanged.'); }
+  V.memBusy = null;
+  renderModal();
 }
 
 /* ---------- UI ---------- */
@@ -3399,7 +3449,10 @@ function viewMemories() {
   ms.slice().reverse().forEach((m) => {
     o += '<div class="card mem"><div class="small dim">' + esc(MEM_KIND[m.kind] || m.kind) + (m.who ? ' &middot; ' + esc(m.who) : '') + (m.adv ? ' &middot; ' + esc(m.adv) : '') + (m.resolved ? ' &middot; settled' : '') + '</div>' +
       '<textarea data-bind="mem:' + m.id + '" maxlength="240" aria-label="Memory">' + esc(m.text) + '</textarea>' +
-      '<button class="btn danger" data-a="mem:del:' + m.id + '" style="margin:6px 0 0">Let it go</button></div>';
+      (V.memDraft && V.memDraft.id === m.id
+        ? '<div class="small dim" style="margin-top:8px">Retold in your voice:</div><div class="memdraft">' + esc(V.memDraft.text) + '</div><div class="row"><button class="btn primary" data-a="mem:keep:' + m.id + '" style="margin:6px 0 0">Keep this</button><button class="btn ghost" data-a="mem:drop:' + m.id + '" style="margin:6px 0 0">Discard</button></div>'
+        : '<div class="row">' + (aiOn() ? '<button class="btn ghost" data-a="mem:retell:' + m.id + '" style="margin:6px 0 0" ' + (V.memBusy ? 'disabled' : '') + '>' + (V.memBusy === m.id ? 'Retelling…' : 'Retell in my voice') + '</button>' : '') + '<button class="btn danger" data-a="mem:del:' + m.id + '" style="margin:6px 0 0">Let it go</button></div>') +
+      '</div>';
   });
   return o;
 }
@@ -3556,6 +3609,13 @@ function onAct(a, el) {
   /* play */
   if (k === 'sheet') { openModal('sheet'); return; }
   if (k === 'journal') { V.jtab = 'sum'; openModal('journal'); return; }
+  if (k === 'mem' && p[1] === 'retell') { retellMemory(p[2]); return; }
+  if (k === 'mem' && p[1] === 'keep') {
+    const m = (hero.memories || []).find((x) => x.id === p[2]);
+    if (m && V.memDraft && V.memDraft.id === m.id) { m.text = V.memDraft.text.slice(0, 240); m.edited = true; save(); toast('Memory saved.'); }
+    V.memDraft = null; renderModal(); return;
+  }
+  if (k === 'mem' && p[1] === 'drop') { V.memDraft = null; renderModal(); return; }
   if (k === 'mem' && p[1] === 'del') { if (confirm('Let this memory go? The story will no longer bring it back.')) { hero.memories = (hero.memories || []).filter((m) => m.id !== p[2]); save(); renderModal(); } return; }
   if (k === 'jt') { V.jtab = p[1]; V.histJump = p[1] === 'log'; renderModal(); return; }
   if (k === 'ideas') { makeIdeas(); return; }
@@ -3675,7 +3735,7 @@ async function boot() {
   }
 }
 window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, keywordIntent, parseIntent, setRand: (f) => { dRand.f = f; },
-  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, down, applyFx, killEnemy, leaveRun, heroMarkdown, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
+  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, down, applyFx, memoryIdeas, dwellMemory, killEnemy, leaveRun, heroMarkdown, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
 })();
