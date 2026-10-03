@@ -8,6 +8,7 @@ const AI_MOCK = process.argv[4] === 'ai';
 const SMART = process.argv[5] === 'smart';
 const DUMP = process.argv[6] === 'dump';
 const DICE = process.env.DICE || 'auto'; // auto | d20 | all: exercise the manual-dice prompt
+const DICEHOW = process.env.DICEHOW || 'type'; // type | tap: how the prompt is answered
 
 const SKILLS_OK = new Set(['acrobatics','arcana','athletics','deception','history','insight','intimidation','investigation','medicine','nature','perception','persuasion','religion','sleight','stealth','survival']);
 const stats = { runs: 0, endings: {}, errors: [], badText: [], steps: 0, stuck: 0, levels: {}, deaths: 0, prompts: 0, promptKinds: {}, rejected: 0, byClass: {}, byTheme: {}, twists: {}, hooks: {} };
@@ -59,6 +60,8 @@ async function playOne(i) {
   if (rnd() < 0.5) D.S.settings.forgiving = false;
   D.S.settings.difficulty = pick(['story', 'standard', 'standard', 'grim']);
   D.S.settings.dice = DICE;
+  D.S.settings.diceHow = DICEHOW;
+  D.V.diceMs = 0;
   if (AI_MOCK) { await D.AI.load('small'); D.S.settings.narrator = 'ai'; }
   D.onAct('c:make');
   const heroRef = D.S.heroes[0];
@@ -76,6 +79,31 @@ async function playOne(i) {
       const modal = w.document.getElementById('modal');
       if (!modal || !/Roll \d+d\d+/.test(modal.textContent)) errs.push('no dice modal shown');
       if (D.Dice.hold) errs.push('hold left on during prompt');
+      if (DICEHOW === 'tap') {
+        const dieEls = w.document.querySelectorAll('#modal .die');
+        if (dieEls.length !== need.n) errs.push('wrong number of dice shown for tap roll');
+        if (rnd() < 0.1) {
+          /* real animation path: tumble, land, then Continue */
+          D.V.diceMs = 20;
+          w.document.querySelector('[data-a="dice:tap"]').click();
+          if (!D.Dice.need) errs.push('tap path finished before the animation');
+          await new Promise((r) => setTimeout(r, 70));
+          if (!w.document.querySelector('#modal .die.landed')) errs.push('die did not land');
+          const go = w.document.querySelector('[data-a="dice:go"]');
+          if (!go) errs.push('no Continue button after the roll'); else go.click();
+          D.V.diceMs = 0;
+          stats.tapAnim = (stats.tapAnim || 0) + 1;
+          await tick();
+          continue;
+        }
+        if (rnd() < 0.15) { w.document.querySelector('[data-a="dice:type"]').click(); stats.tapSwitched = (stats.tapSwitched || 0) + 1; }
+        else {
+          w.document.querySelector('[data-a="dice:tap"]').click();
+          stats.tapped = (stats.tapped || 0) + 1;
+          await tick();
+          continue;
+        }
+      }
       const inputs = [...w.document.querySelectorAll('#modal input.dv')];
       if (inputs.length !== need.n) errs.push('wrong number of dice inputs');
       if (rnd() < 0.15) { /* a bad entry must be refused and keep the prompt open */

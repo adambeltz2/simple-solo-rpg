@@ -23,10 +23,10 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
   in your next adventure.
 - Read back at any time: scroll up in the story (a "↓ Latest" button returns you), or
   open the Journal's "Full story so far" tab.
-- Dice are yours if you want them: Settings → Dice lets the game roll for you, ask
-  you for each d20, or ask you for every die your hero rolls (damage and healing too).
-  Enter the number from your physical dice, or tap "Roll for me". Enemy and world
-  rolls always stay automatic.
+- Dice are yours if you want them: Settings → Dice lets the game roll for you, or
+  stop at each d20 (or every die your hero rolls, damage and healing too). Then tap the
+  die to roll it and watch it land, or type the number from your physical dice. Enemy
+  and world rolls always stay automatic.
 - Four classes (fighter, rogue, wizard, cleric), five species, backgrounds, and a
   "drive" that earns Fortune rerolls when you play in character. Difficulty:
   story, standard, grim. Defeat is either "Left for dead" or real death.
@@ -52,7 +52,7 @@ offline. Saves live in the browser's local storage; use Export in Settings for b
 - `src/` — the sources (`00_util.js` … `09_ui.js`, including `04b_dice.js` for manual dice, `style.css`, `template.html`) and
   `build.py`, which assembles them into `index.html`.
 - `tools/test.js` — jsdom bot that plays full adventures through the real UI
-  (`node tools/test.js N seedbase [ai] [smart] [dump]`).
+  (`node tools/test.js N seedbase [ai] [smart] [dump]`; set `DICE=d20|all` and `DICEHOW=tap|type` to test the dice prompts).
 - `tools/memory.js` — targeted test of hero memories and the returning betrayer (`node tools/memory.js`).
 - `tools/sim.js` — combat balance simulator (`node tools/sim.js N kinds`).
 

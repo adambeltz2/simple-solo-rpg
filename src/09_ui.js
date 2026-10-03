@@ -1,6 +1,6 @@
 /* ---------- UI ---------- */
 const V = { screen: 'title', modal: null, create: { species: 'human', cls: 'fighter', bg: 'soldier', drive: 'glory', name: '', story: '' }, newAdv: { heroId: null, theme: 'random', seed: '' }, els: new Map(), lastId: 0, sel: null, installEvt: null, aiLoading: false, toastT: null };
-const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1, dice: 'auto' });
+const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1, dice: 'auto', diceHow: 'tap' });
 const app = () => document.getElementById('app');
 
 function btn(a, label, cls, extra) { return '<button class="btn ' + (cls || '') + '" data-a="' + a + '" ' + (extra || '') + '>' + label + '</button>'; }
@@ -298,13 +298,70 @@ function renderModal() {
 function viewDice() {
   const n = Dice.need;
   if (!n) return '<p class="dim">No roll needed.</p>';
+  const tap = (S.settings.diceHow || 'tap') === 'tap' && !V.diceType;
   let o = '<div class="top"><h2 style="margin:0">Your roll</h2></div>';
   o += '<div class="dicehead">Roll ' + n.n + 'd' + n.sides + '</div><div class="dim">' + esc(n.label) + '</div>';
+  if (tap) {
+    o += '<div class="dstage">';
+    for (let i = 0; i < n.n; i++) o += '<div class="die" id="die' + i + '" aria-live="polite">d' + n.sides + '</div>';
+    o += '</div><div class="dnote" id="dnote">&nbsp;</div>';
+    o += btn('dice:tap', 'Tap to roll', 'primary') + btn('dice:type', 'Enter my own roll instead', 'ghost');
+    return o;
+  }
   o += '<div class="dvrow">';
   for (let i = 0; i < n.n; i++) o += '<input class="dv" id="dv' + i + '" type="number" inputmode="numeric" min="1" max="' + n.sides + '" step="1" placeholder="' + (n.n > 1 ? 'Die ' + (i + 1) : 'd' + n.sides) + '" aria-label="d' + n.sides + ' result ' + (i + 1) + '">';
   o += '</div>';
   o += btn('dice:ok', 'Use my roll', 'primary') + btn('dice:auto', 'Roll for me', 'ghost');
   return o;
+}
+/* tap-to-roll: the value is drawn when the die is tapped, shown tumbling, then handed to the paused action */
+function tapRoll(need) {
+  if (V.diceRolling) return;
+  const vals = [];
+  for (let i = 0; i < need.n; i++) vals.push(1 + Math.floor(dRand.f() * need.sides));
+  V.diceRolling = true;
+  V.diceVals = vals;
+  const tok = V.diceTok = (V.diceTok || 0) + 1;
+  const els = vals.map((v, i) => document.getElementById('die' + i));
+  const btnEl = document.querySelector('#modal [data-a="dice:tap"]');
+  if (btnEl) btnEl.disabled = true;
+  const typeEl = document.querySelector('#modal [data-a="dice:type"]');
+  if (typeEl) typeEl.hidden = true;
+  const ms = V.diceMs === undefined ? 850 : V.diceMs;
+  let spin = null;
+  const land = () => {
+    if (tok !== V.diceTok) return;
+    if (spin) clearInterval(spin);
+    els.forEach((el, i) => {
+      if (!el) return;
+      el.textContent = vals[i];
+      el.classList.remove('tumble');
+      el.classList.add('landed');
+      if (need.sides === 20 && vals[i] === 20) el.classList.add('crit');
+      if (need.sides === 20 && vals[i] === 1) el.classList.add('fumble');
+    });
+    const note = document.getElementById('dnote');
+    if (note) {
+      const nat = need.sides === 20 && need.n === 1 ? (vals[0] === 20 ? 'Natural 20!' : vals[0] === 1 ? 'Natural 1.' : '') : '';
+      note.textContent = nat || (need.n > 1 ? 'Total ' + vals.reduce((a, b) => a + b, 0) : '');
+    }
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Continue'; btnEl.setAttribute('data-a', 'dice:go'); }
+    if (ms === 0) dicePass(tok); else V.diceTimer = setTimeout(() => dicePass(tok), 1200);
+  };
+  if (ms === 0) { land(); return; }
+  els.forEach((el) => { if (el) el.classList.add('tumble'); });
+  spin = setInterval(() => { els.forEach((el) => { if (el) el.textContent = 1 + Math.floor(Math.random() * need.sides); }); }, 65);
+  V.diceTimer = setTimeout(land, ms);
+}
+function dicePass(tok) {
+  if (tok !== V.diceTok || !V.diceVals) return;
+  const vals = V.diceVals;
+  if (V.diceTimer) clearTimeout(V.diceTimer);
+  V.diceTimer = null; V.diceRolling = false; V.diceVals = null; V.diceType = false;
+  V.modal = V.prevModal || null;
+  V.prevModal = null;
+  renderModal();
+  diceSupply(vals);
 }
 function topbar(title) { return '<div class="top"><h2 style="margin:0">' + title + '</h2><button class="x" data-a="close" aria-label="Close">✕</button></div>'; }
 function viewSheet() {
@@ -371,7 +428,9 @@ function viewSettings() {
   o += '<div style="height:8px"></div>' + btn('ai:go', AI.status === 'ready' && AI.modelKey === s.model ? 'Narrator is ready' : 'Download &amp; enable narrator', 'primary', V.aiLoading || (AI.status === 'ready' && AI.modelKey === s.model) ? 'disabled' : '');
   o += '<h3 style="margin-top:14px">Game</h3><label class="f">Difficulty (applies to new adventures)</label><div class="chips">' + [['story', 'Story'], ['standard', 'Standard'], ['grim', 'Grim']].map((x) => '<button class="chip ' + (s.difficulty === x[0] ? 'on' : '') + '" data-a="set:difficulty:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
   o += '<label class="f">When you fall</label><div class="chips"><button class="chip ' + (s.forgiving ? 'on' : '') + '" data-a="set:forgiving:1">Left for dead (story goes on)</button><button class="chip ' + (!s.forgiving ? 'on' : '') + '" data-a="set:forgiving:0">Death saves (can die)</button></div>';
-  o += '<label class="f">Dice</label><div class="chips">' + [['auto', 'Roll for me'], ['d20', 'I roll d20s'], ['all', 'I roll everything']].map((x) => '<button class="chip ' + ((s.dice || 'auto') === x[0] ? 'on' : '') + '" data-a="set:dice:' + x[0] + '">' + x[1] + '</button>').join('') + '</div><div class="small dim">Use your own physical dice: the game asks for each roll of your hero (checks, attacks' + ', and with the last option damage and healing too). Enemy and world rolls stay automatic. Every prompt has a Roll for me button.</div>';
+  o += '<label class="f">Dice</label><div class="chips">' + [['auto', 'Roll for me'], ['d20', 'Just the d20s'], ['all', 'Everything']].map((x) => '<button class="chip ' + ((s.dice || 'auto') === x[0] ? 'on' : '') + '" data-a="set:dice:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
+  if ((s.dice || 'auto') !== 'auto') o += '<label class="f">How you roll</label><div class="chips">' + [['tap', 'Tap to roll'], ['type', 'Type my own dice']].map((x) => '<button class="chip ' + ((s.diceHow || 'tap') === x[0] ? 'on' : '') + '" data-a="set:diceHow:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
+  o += '<div class="small dim">' + ((s.dice || 'auto') === 'auto' ? 'The game rolls everything for you instantly.' : 'The game stops at each roll of your hero (checks and attacks' + (s.dice === 'all' ? ', damage and healing too' : '') + '): tap the die to roll it, or type the number from your own dice. Enemy and world rolls stay automatic.') + '</div>';
   o += '<label class="f">Text size</label><div class="chips">' + [[0.9, 'Small'], [1, 'Medium'], [1.15, 'Large'], [1.3, 'Huge']].map((x) => '<button class="chip ' + (s.textSize === x[0] ? 'on' : '') + '" data-a="set:text:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
   o += '<h3 style="margin-top:14px">Data</h3><div class="small dim">Everything is stored on this device. Export a backup now and then.</div><div style="height:6px"></div>' + btn('data:export', 'Export backup (.json)', 'ghost') + '<label class="btn ghost" style="cursor:pointer">Import backup<input type="file" id="imp" accept=".json,application/json" style="display:none"></label>' + btn('data:wipe', 'Erase everything', 'danger') + '<p class="ver">' + esc(verLine()) + '</p>';
   return o;
@@ -412,6 +471,9 @@ function onAct(a, el) {
   if (k === 'dice') {
     const need = Dice.need;
     if (!need) return;
+    if (p[1] === 'tap') { tapRoll(need); return; }
+    if (p[1] === 'go') { dicePass(V.diceTok); return; }
+    if (p[1] === 'type') { if (V.diceRolling) return; V.diceType = true; renderModal(); return; }
     const vals = [];
     for (let i = 0; i < need.n; i++) {
       if (p[1] === 'auto') { vals.push(1 + Math.floor(dRand.f() * need.sides)); continue; }
@@ -420,6 +482,7 @@ function onAct(a, el) {
       if (!el || el.value.trim() === '' || !Number.isInteger(v) || v < 1 || v > need.sides) { toast('Enter a whole number from 1 to ' + need.sides + '.'); if (el) el.focus(); return; }
       vals.push(v);
     }
+    V.diceType = false;
     V.modal = V.prevModal || null;
     V.prevModal = null;
     renderModal();
@@ -476,6 +539,7 @@ function onAct(a, el) {
     else if (p[1] === 'difficulty') s.difficulty = p[2];
     else if (p[1] === 'forgiving') s.forgiving = p[2] === '1';
     else if (p[1] === 'dice') s.dice = p[2];
+    else if (p[1] === 'diceHow') s.diceHow = p[2];
     else if (p[1] === 'text') { s.textSize = parseFloat(p[2]); document.documentElement.style.setProperty('--fs', s.textSize); }
     save();
     renderModal();

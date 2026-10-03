@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] - 2026-10-02
+
+### Added
+
+- Tap-to-roll dice: Settings → Dice now picks which rolls are yours (just the d20s, or everything) and, separately, how you roll them. "Tap to roll" shows the die; you tap it, it tumbles and lands on its number (a natural 20 or 1 is called out), and the game carries on. "Type my own dice" is the earlier behaviour for physical dice, and every roll can still switch to typing with "Enter my own roll instead". The game rolling everything instantly is still the default.
+
+### Changed
+
+- Anyone who had already chosen "I roll d20s" or "I roll everything" now gets tap-to-roll by default; switch "How you roll" to "Type my own dice" to keep entering physical dice.
+
 ## [1.3.0] - 2026-10-02
 
 ### Added
