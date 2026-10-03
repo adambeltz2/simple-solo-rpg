@@ -1,6 +1,6 @@
 /* ---------- UI ---------- */
 const V = { screen: 'title', modal: null, create: { species: 'human', cls: 'fighter', bg: 'soldier', drive: 'glory', name: '', story: '' }, newAdv: { heroId: null, theme: 'random', seed: '' }, els: new Map(), lastId: 0, sel: null, installEvt: null, aiLoading: false, toastT: null };
-const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1, dice: 'auto', diceHow: 'tap' });
+const defaultSettings = () => ({ narrator: 'templates', model: 'small', difficulty: 'standard', forgiving: true, textSize: 1, dice: 'auto', diceHow: 'tap', readGate: 'on' });
 const app = () => document.getElementById('app');
 
 function btn(a, label, cls, extra) { return '<button class="btn ' + (cls || '') + '" data-a="' + a + '" ' + (extra || '') + '>' + label + '</button>'; }
@@ -189,6 +189,7 @@ function appendLog() {
 ui.onEntry = (e) => {
   const el = V.els.get(e.id);
   if (el) { setEntry(el, e); const log = document.getElementById('log'); if (log && log.scrollHeight - log.scrollTop - log.clientHeight < 40) log.scrollTop = log.scrollHeight; }
+  if (V.screen === 'play' && holdState() !== V.holdPrev) renderActs();
 };
 function optHtml(c) {
   let sub = '';
@@ -200,9 +201,30 @@ function optHtml(c) {
   const cont = c.id === 'continue' || c.id === 'search';
   return '<button class="opt ' + (c.id === 'continue' ? 'cont' : '') + ' ' + (c.drive === hero.drive ? 'hot' : '') + '" data-a="pick:' + c.id + '">' + esc(c.label) + (sub && !cont ? '<small>' + sub + '</small>' : '') + '</button>';
 }
+/* While the on-device narrator is writing, nothing else is offered; once it is done the player reads at their own
+   pace and taps Continue before the choices appear (unless they turned that off in settings). */
+function holdState() {
+  if (!run) return '';
+  let gate = false;
+  for (let i = run.log.length - 1, n = 0; i >= 0 && n < 12; i--, n++) {
+    const e = run.log[i];
+    if (e.k !== 'narr') continue;
+    if (e.wait || e.live) return 'writing';
+    if (e.gate) gate = true;
+  }
+  return gate && S.settings.readGate !== 'off' ? 'gate' : '';
+}
+function renderHold(box, st) {
+  box.innerHTML = st === 'writing'
+    ? '<div class="hold"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="small dim">The narrator is writing&hellip;</span><button class="btn ghost" data-a="skipnarr" style="margin:0;flex:none;width:auto;padding:8px 14px">Skip</button></div>' + miniRow()
+    : '<button class="opt cont" data-a="readit">Continue</button>' + miniRow();
+}
 function renderActs() {
   const box = document.getElementById('actsin');
   if (!box || !run) return;
+  const st = holdState();
+  V.holdPrev = st;
+  if (st) { renderHold(box, st); return; }
   let h = '';
   const ph = run.phase;
   if (ph === 'doors') {
@@ -430,6 +452,7 @@ function viewSettings() {
   o += '<h3>Narrator</h3><div class="small dim">The game is fully playable offline with built-in text. An on-device model can rewrite the narration in richer prose, and read your free-text actions. It never decides rules or outcomes.</div>';
   o += '<div class="chips"><button class="chip ' + (s.narrator === 'templates' ? 'on' : '') + '" data-a="set:narrator:templates">Built-in text</button><button class="chip ' + (s.narrator === 'ai' ? 'on' : '') + '" data-a="set:narrator:ai">On-device AI</button></div>';
   o += '<label class="f">Model</label><div class="chips">' + Object.keys(MODELS).map((k) => '<button class="chip ' + (s.model === k ? 'on' : '') + '" data-a="set:model:' + k + '">' + MODELS[k].label + '</button>').join('') + '</div><div class="small dim">' + m.size + ' one-time download. ' + m.note + ' Needs WebGPU (Chrome on a recent Android phone works well).</div>';
+  o += '<label class="f">After the narrator writes</label><div class="chips"><button class="chip ' + (s.readGate !== 'off' ? 'on' : '') + '" data-a="set:readGate:on">Wait for me to tap Continue</button><button class="chip ' + (s.readGate === 'off' ? 'on' : '') + '" data-a="set:readGate:off">Show choices right away</button></div><div class="small dim">With the narrator on, choices stay hidden while it writes. Then you read at your own pace and tap Continue.</div>';
   o += '<div class="prog"><i id="aiBar" style="width:' + Math.round(AI.progress * 100) + '%"></i></div><div class="small dim" id="aiMsg">' + esc(AI.status === 'error' ? AI.err : aiStatusText()) + '</div>';
   o += '<div style="height:8px"></div>' + btn('ai:go', AI.status === 'ready' && AI.modelKey === s.model ? 'Narrator is ready' : 'Download &amp; enable narrator', 'primary', V.aiLoading || (AI.status === 'ready' && AI.modelKey === s.model) ? 'disabled' : '');
   o += '<h3 style="margin-top:14px">Game</h3><label class="f">Difficulty (applies to new adventures)</label><div class="chips">' + [['story', 'Story'], ['standard', 'Standard'], ['grim', 'Grim']].map((x) => '<button class="chip ' + (s.difficulty === x[0] ? 'on' : '') + '" data-a="set:difficulty:' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
@@ -546,6 +569,7 @@ function onAct(a, el) {
     else if (p[1] === 'forgiving') s.forgiving = p[2] === '1';
     else if (p[1] === 'dice') s.dice = p[2];
     else if (p[1] === 'diceHow') s.diceHow = p[2];
+    else if (p[1] === 'readGate') s.readGate = p[2];
     else if (p[1] === 'text') { s.textSize = parseFloat(p[2]); document.documentElement.style.setProperty('--fs', s.textSize); }
     save();
     renderModal();
@@ -569,6 +593,8 @@ function onAct(a, el) {
   if (k === 'mem' && p[1] === 'drop') { V.memDraft = null; renderModal(); return; }
   if (k === 'mem' && p[1] === 'del') { if (confirm('Let this memory go? The story will no longer bring it back.')) { hero.memories = (hero.memories || []).filter((m) => m.id !== p[2]); save(); renderModal(); } return; }
   if (k === 'jt') { V.jtab = p[1]; V.histJump = p[1] === 'log'; renderModal(); return; }
+  if (k === 'readit') { run.log.forEach((e) => { e.gate = false; }); renderActs(); const lg = document.getElementById('log'); if (lg) lg.scrollTop = lg.scrollHeight; return; }
+  if (k === 'skipnarr') { Narrator.skip(); renderActs(); return; }
   if (k === 'ideas') { makeIdeas(); return; }
   if (k === 'didea') { say0(); withDice(() => doorIdea(Number(p[1]))); return; }
   if (k === 'latest') { const lg = document.getElementById('log'); if (lg) lg.scrollTop = lg.scrollHeight; return; }
@@ -607,7 +633,7 @@ function loadState() {
   if (!s || typeof s !== 'object' || !Array.isArray(s.heroes)) s = freshState();
   s.settings = Object.assign(defaultSettings(), s.settings || {});
   s.fallen = s.fallen || [];
-  if (s.run && Array.isArray(s.run.log)) s.run.log.forEach((e) => { e.wait = false; e.live = false; });
+  if (s.run && Array.isArray(s.run.log)) s.run.log.forEach((e) => { e.wait = false; e.live = false; e.gate = false; });
   s.heroes.forEach((h) => { h.inv = h.inv || { potion: 2 }; h.gear = h.gear || []; h.legacy = h.legacy || []; h.chronicle = h.chronicle || []; h.memories = h.memories || []; h.res = h.res || resMax(h); });
   return s;
 }

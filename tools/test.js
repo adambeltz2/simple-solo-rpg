@@ -144,6 +144,17 @@ async function playOne(i) {
       const txt = w.document.getElementById('app').textContent;
       const bad = txt.match(/undefined|NaN|\[object|\{[a-z]+\}/);
       if (bad) { stats.badText.push(`run ${i} adv ${adv} step ${steps} phase ${run.phase}: "${bad[0]}" near "${txt.slice(Math.max(0, txt.indexOf(bad[0]) - 60), txt.indexOf(bad[0]) + 40).replace(/\s+/g, ' ')}"`); }
+      /* narrator hold: nothing but Skip / Continue may be offered while it writes or until the player has read */
+      let held = 0;
+      while ((w.document.querySelector('#actsin .hold') || w.document.querySelector('#actsin [data-a="readit"]')) && held++ < 40) {
+        stats.holds = (stats.holds || 0) + 1;
+        if (w.document.querySelector('#actsin [data-a^="pick:"]:not([data-a="readit"]), #actsin [data-a^="door:"], #actsin [data-a="ideas"]')) errs.push('choices offered during narrator hold');
+        const rd = w.document.querySelector('#actsin [data-a="readit"]');
+        if (rd) { rd.click(); stats.readit = (stats.readit || 0) + 1; if (w.document.querySelector('#actsin [data-a="readit"]')) errs.push('Continue did not reveal the choices'); break; }
+        if (held > 12 && rnd() < 0.3) { w.document.querySelector('#actsin [data-a="skipnarr"]').click(); stats.skipped = (stats.skipped || 0) + 1; }
+        await new Promise((r) => setTimeout(r, 5));
+      }
+      if (held >= 40) { errs.push('narrator hold never ended'); stats.stuck++; break; }
       if (run.phase === 'epilogue' || run.phase === 'dead') {
         const fin = w.document.querySelector('[data-a="finish"]');
         result = run.epilogue ? run.epilogue.kind : run.phase;
@@ -267,7 +278,7 @@ async function playOne(i) {
 
 (async () => {
   for (let i = 0; i < N; i++) await playOne(i);
-  console.log(JSON.stringify({ doorIdeas: stats.doorIdeas || 0, doorUsed: stats.doorUsed || 0, probes: stats.probes || 0, restIdeas: stats.restIdeas || 0, ideas: stats.ideas || 0, ideaCalls: stats.ideaCalls || 0, dice: DICE, prompts: stats.prompts, promptKinds: stats.promptKinds, rejected: stats.rejected, runs: stats.runs, steps: stats.steps, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
+  console.log(JSON.stringify({ doorIdeas: stats.doorIdeas || 0, doorUsed: stats.doorUsed || 0, probes: stats.probes || 0, restIdeas: stats.restIdeas || 0, ideas: stats.ideas || 0, ideaCalls: stats.ideaCalls || 0, dice: DICE, prompts: stats.prompts, promptKinds: stats.promptKinds, rejected: stats.rejected, runs: stats.runs, steps: stats.steps, holds: stats.holds || 0, readit: stats.readit || 0, skipped: stats.skipped || 0, tapped: stats.tapped || 0, tapAnim: stats.tapAnim || 0, endings: stats.endings, deaths: stats.deaths, levels: stats.levels, twists: stats.twists, hooks: stats.hooks, themes: stats.byTheme, byClass: stats.byClass, stuck: stats.stuck }, null, 1));
   console.log('ERRORS', stats.errors.length);
   stats.errors.slice(0, 6).forEach((e) => console.log(JSON.stringify(e)));
   console.log('BADTEXT', stats.badText.length);

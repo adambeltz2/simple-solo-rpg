@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.0] - 2026-10-03
+
+### Changed
+
+- With the on-device narrator on, the game now holds still while it writes: no choices, no new prompts, just the thinking dots and a "Skip" button (which shows the built-in text instead). When the passage is finished you read it at your own pace and tap Continue, and only then do the choices appear. Settings → Narrator → "After the narrator writes" lets you show the choices right away instead. With the built-in text nothing changes.
+
 ## [1.6.1] - 2026-10-03
 
 ### Added

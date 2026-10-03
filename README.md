@@ -42,6 +42,9 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
   (about 0.7–2 GB) and the WebLLM library from the jsdelivr CDN; after that it runs
   offline. The model only rewrites narration and parses free-text intent; code decides
   every outcome.
+- While the narrator writes, the game holds still (thinking dots, a Skip button, no choices);
+  when it is done you read at your own pace and tap Continue to see the choices.
+  Settings can show the choices right away instead.
 
 ## Install on Android
 

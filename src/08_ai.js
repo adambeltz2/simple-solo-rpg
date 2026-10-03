@@ -121,6 +121,16 @@ const Narrator = {
     this.queue.length = 0;
     if (this.running) { this.running.aborted = true; AI.interrupt(); }
   },
+  /* the player gave up waiting: show the built-in text now and ignore whatever the model still produces */
+  skip() {
+    if (this.running) this.running.skipped = true;
+    this.userMoved();
+    const log = run ? run.log : [];
+    log.forEach((e) => {
+      if (e.k === 'narr' && (e.wait || e.live)) { e.wait = false; e.live = false; e.t = e.tpl || e.t; e.ai = false; if (ui.onEntry) ui.onEntry(e); }
+      if (e.gate) e.gate = false;
+    });
+  },
   async pump() {
     if (this.running) return;
     const job = this.queue.shift();
@@ -153,8 +163,9 @@ const Narrator = {
     });
     e.live = false;
     e.wait = false;
+    if (job.skipped) { e.t = e.tpl; e.ai = false; e.gate = false; if (ui.onEntry) ui.onEntry(e); return; }
     const cleaned = cleanNarration(job.aborted ? last : text, f.draft);
-    if (cleaned && (!job.aborted || cleaned.length > 70)) { e.t = cleaned; e.ai = true; } else e.t = e.tpl;
+    if (cleaned && (!job.aborted || cleaned.length > 70)) { e.t = cleaned; e.ai = true; e.gate = !job.aborted; } else e.t = e.tpl;
     if (ui.onEntry) ui.onEntry(e);
     save();
   },

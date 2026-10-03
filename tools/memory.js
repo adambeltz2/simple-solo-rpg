@@ -3,6 +3,7 @@ const { JSDOM, VirtualConsole } = require('jsdom');
 const fs = require('fs');
 const html = fs.readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
 const tick = () => new Promise((r) => setTimeout(r, 0));
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL: ' + m); } else console.log('ok:   ' + m); };
 
@@ -136,7 +137,7 @@ function mkHero(w, name) {
     D.onAct('journal'); D.onAct('jt:mem');
     ok(/Retell in my voice/.test(w.document.getElementById('modal').innerHTML), 'Retell button shows when the narrator is on');
     D.onAct('mem:retell:m1');
-    await new Promise((r) => setTimeout(r, 200));
+    await wait(200);
     ok(D.V.memDraft && D.V.memDraft.id === 'm1' && /Dunmore/.test(D.V.memDraft.text), 'a retold draft is offered, not saved: ' + (D.V.memDraft && D.V.memDraft.text));
     ok(h.memories[0].text.startsWith('Dunmore turned on me'), 'original text unchanged until accepted');
     D.onAct('mem:keep:m1');
@@ -145,7 +146,7 @@ function mkHero(w, name) {
     h.memories.push({ id: 'm3', kind: 'betrayal', text: 'Dunmore betrayed me in the Hollow Vault, again and again.', src: 'x', who: 'Dunmore', tags: [], adv: 'x', seed: 'old2', used: 0, resolved: '', edited: false });
     w.__mockLLM.chat.completions.create = async (o) => (async function* () { for (const x of 'Someone I trusted left me bleeding in the dark, long ago.'.split(' ')) yield { choices: [{ delta: { content: x + ' ' } }] }; })();
     D.onAct('mem:retell:m3');
-    await new Promise((r) => setTimeout(r, 200));
+    await wait(200);
     ok(!D.V.memDraft, 'a retelling that drops the betrayer name is refused');
     ok(h.memories.find((m) => m.id === 'm3').text.startsWith('Dunmore betrayed'), 'and the memory is untouched');
     ok(errs.length === 0, 'no script errors' + (errs.length ? ': ' + errs.slice(0, 3).join('; ') : ''));
@@ -193,6 +194,41 @@ function mkHero(w, name) {
     ok(D.run.log.some((e) => /thinking of Tilda/.test((e.t || '') + (e.tpl || ''))), 'a rest stop recalls the fallen ally');
     const lab = D.run.cur.choices.map((c) => c.label);
     ok(lab.some((l) => /Remember Tilda|Remember getting up again|Think over/.test(l)), 'rest offers to dwell on a memory: ' + lab.join(' | '));
+    ok(errs.length === 0, 'no script errors' + (errs.length ? ': ' + errs.slice(0, 3).join('; ') : ''));
+  }
+  /* narrator hold: no choices while it writes, then Continue, Skip, and the setting that turns the gate off */
+  console.log('--- narrator hold');
+  {
+    const { w, errs } = await boot();
+    const D = w.__delve;
+    w.__mockLLM = { chat: { completions: { async create(o) {
+      if (o.stream) return (async function* () { for (const x of 'You step softly into the dark, and the stones whisper of what came before you here.'.split(' ')) { await new Promise((r) => setTimeout(r, 25)); yield { choices: [{ delta: { content: x + ' ' } }] }; } })();
+      return { choices: [{ message: { content: '{}' } }] };
+    } } }, interruptGenerate() {} };
+    await D.AI.load('small');
+    D.S.settings.narrator = 'ai';
+    D.V.create = { species: 'human', cls: 'fighter', bg: 'soldier', drive: 'glory', name: 'Reader', story: '' };
+    D.onAct('c:make'); D.onAct('n:begin');
+    const q = (sel) => w.document.querySelector(sel);
+    ok(!!q('#actsin .hold') && w.document.querySelectorAll('#actsin .opt').length === 0, 'while the narrator writes, no choices are offered');
+    await wait(40);
+    ok(!!q('#actsin .hold') && w.document.querySelectorAll('#actsin .opt').length === 0, 'still static mid-stream');
+    for (let t = 0; t < 60 && !q('#actsin [data-a="readit"]'); t++) await wait(50);
+    ok(!q('#actsin .hold') && !!q('#actsin [data-a="readit"]') && w.document.querySelectorAll('#actsin .opt:not([data-a="readit"])').length === 0, 'when it finishes, only Continue is shown');
+    q('#actsin [data-a="readit"]').click();
+    ok(w.document.querySelectorAll('#actsin .opt').length >= 2 && !q('#actsin [data-a="readit"]'), 'Continue reveals the choices');
+    /* Skip while writing */
+    D.onAct('pick:' + D.run.cur.choices[0].id);
+    ok(!!q('#actsin .hold'), 'the next passage holds again');
+    q('#actsin [data-a="skipnarr"]').click();
+    ok(!q('#actsin .hold') && !q('#actsin [data-a="readit"]') && w.document.querySelectorAll('#actsin .opt').length >= 1, 'Skip drops the hold and shows the choices');
+    await wait(300);
+    ok(!q('#actsin .hold'), 'a skipped passage does not re-hold when it ends');
+    /* setting off */
+    D.S.settings.readGate = 'off';
+    D.onAct('pick:' + (D.run.cur.choices.find((c) => c.id === 'continue') || D.run.cur.choices[0]).id);
+    for (let t = 0; t < 60 && q('#actsin .hold'); t++) await wait(50);
+    ok(!q('#actsin .hold') && !q('#actsin [data-a="readit"]') && w.document.querySelectorAll('#actsin .opt').length >= 1, 'with the gate off, choices appear as soon as it is written');
     ok(errs.length === 0, 'no script errors' + (errs.length ? ': ' + errs.slice(0, 3).join('; ') : ''));
   }
   console.log(fails ? 'FAILED ' + fails : 'ALL OK');
