@@ -409,7 +409,7 @@ function enemyAttack(e) {
       const dm = rollArr(e.dmg).total;
       A.hp -= dm;
       say('sys', e.n + ' strikes ' + A.name + ' (' + dm + ').');
-      if (A.hp <= 0) { A.alive = false; A.active = false; setFlag('ally_dead'); say('dmg', A.name + ' falls!'); deed(A.name + ' fell in battle'); }
+      if (A.hp <= 0) { A.alive = false; A.active = false; setFlag('ally_dead'); say('dmg', A.name + ' falls!'); deed(A.name + ' fell in battle'); rememberLoss(A); }
     } else say('sys', e.n + ' swings at ' + A.name + ' and misses.');
     return;
   }

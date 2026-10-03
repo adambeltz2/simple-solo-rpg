@@ -62,7 +62,9 @@ function allyNow() { const a = run.adv.npcs.ally; return a && a.active && a.aliv
 function deed(text) { led().deeds.push(text); }
 
 /* ---------- hero memories: what the hero carries between adventures ---------- */
-const MEM_KIND = { betrayal: 'Betrayal', left_for_dead: 'Left for dead' };
+const MEM_KIND = { betrayal: 'Betrayal', left_for_dead: 'Left for dead', loss: 'Loss', choice: 'Hard choice', triumph: 'Triumph' };
+/* which memories can bring someone back: betrayal -> the betrayer, choice (left an ally bound) -> the ally */
+const memRet = (m) => m.ret || (m.kind === 'betrayal' && m.who ? 'betrayer' : '');
 function addMemory(kind, text, o) {
   o = o || {};
   const list = hero.memories = hero.memories || [];
@@ -72,7 +74,7 @@ function addMemory(kind, text, o) {
   hero.memSeq = (hero.memSeq || 0) + 1;
   const m = {
     id: 'm' + hero.memSeq, kind, text, src: o.src || '', who: o.who || '', tags: (o.tags || []).map((t) => String(t).toLowerCase()),
-    adv: run.adv.titleFull || run.adv.title, seed, used: 0, resolved: '', edited: false,
+    adv: run.adv.titleFull || run.adv.title, seed, used: 0, resolved: '', edited: false, ret: o.ret || '', dwell: o.dwell || '',
   };
   list.push(m);
   while (list.length > 12) { const i = list.findIndex((x) => x.resolved); list.splice(i >= 0 ? i : 0, 1); }
@@ -107,12 +109,28 @@ function rememberDefeat(room, foes, how) {
   }
   addMemory('left_for_dead', text, { src: room.name, tags: [boss ? boss.n : '', room.name, 'defeat'].filter(Boolean) });
 }
+function rememberLoss(a) {
+  const adv = run.adv;
+  const room = adv.rooms[run.combat ? run.combat.roomId : run.roomId];
+  addMemory('loss', a.name + ' fell beside me' + (room ? ' in the ' + room.name : '') + ', and I could not stop it.', { who: a.name, src: adv.site, tags: [a.name, 'loss', 'ally'], dwell: 'Remember ' + a.name });
+}
+function rememberChoice(key) {
+  const adv = run.adv, a = adv.npcs.ally, v = adv.villain;
+  if (key === 'abandoned' && a) addMemory('choice', 'I left ' + a.name + ' bound and went on. I told myself there was no time.', { who: a.name, src: adv.site, ret: 'abandoned', tags: [a.name, 'abandoned', 'ally'], dwell: 'Think over leaving ' + a.name + ' behind' });
+}
+/* how an adventure ended can leave a mark on the hero */
+function rememberEnding(kind, win) {
+  const adv = run.adv, v = adv.villain;
+  if (kind === 'spared') addMemory('choice', 'I lowered my blade and let ' + v.name + ' walk away. I still wonder if I was right.', { who: v.name, src: adv.site, tags: [v.name, 'mercy'], dwell: 'Think over sparing ' + v.name });
+  else if (kind === 'slain' && (adv.twist.type === 'villain_sympathetic' || flag('villain_truth') || flag('sided_villain'))) addMemory('choice', 'I killed ' + v.name + ', knowing what drove them. I think about the ledger sometimes.', { who: v.name, src: adv.site, tags: [v.name, 'vengeance'], dwell: 'Think over what drove ' + v.name });
+  if (win && flag('defeated')) addMemory('triumph', 'I was left for dead in ' + adv.site + ', and I got up and finished it anyway.', { src: adv.site, tags: ['triumph', 'defeat'], dwell: 'Remember getting up again' });
+}
 /* a betrayer was dealt with: stop them coming back */
 function settleBetrayer(name, how) {
   (hero.memories || []).forEach((m) => {
-    if (m.kind !== 'betrayal' || m.who !== name || m.resolved) return;
+    if (!memRet(m) || m.who !== name || m.resolved) return;
     m.resolved = how;
-    if (!m.edited) m.text += { slain: ' I ended it with steel.', forgiven: ' Later, I chose to give them another chance.', answered: ' Later, I made them tell me why.' }[how] || '';
+    if (!m.edited) m.text += { slain: ' I ended it with steel.', forgiven: ' Later, I chose to give them another chance.', atoned: ' Later, I made it right.', answered: ' Later, I made them tell me why.' }[how] || '';
   });
 }
 /* a memory the hero can sit with at a rest stop (once each) */
@@ -120,7 +138,7 @@ function dwellMemory() {
   const ms = (hero.memories || []).filter((m) => !m.dwelt);
   if (!ms.length) return null;
   const m = ms[ms.length - 1];
-  const label = m.kind === 'betrayal' ? 'Think over ' + (m.who ? m.who + "'s" : 'the') + ' betrayal' : 'Think over the night you were left for dead';
+  const label = m.dwell || (m.kind === 'betrayal' ? 'Think over ' + (m.who ? m.who + "'s" : 'the') + ' betrayal' : 'Think over the night you were left for dead');
   return { m, label };
 }
 /* extra improvisation ideas the hero's memories suggest for this scene */
@@ -237,6 +255,7 @@ function applyFx(fx, opts) {
     const a = run.adv.npcs.ally;
     if (a) { a.betrayer = true; a.active = false; rememberBetrayal(a, fx.combat ? 'caught' : 'fled'); }
   }
+  if (fx.mem) rememberChoice(fx.mem);
   if (fx.dwell) {
     const m = (hero.memories || []).find((x) => x.id === fx.dwell);
     if (m) m.dwelt = true;
@@ -283,7 +302,8 @@ function roomIntro(room) {
   } else if (room.type === 'social') {
     const npc = npcOf(room.npc);
     const role = SOCIAL_ROLES[room.role] || null;
-    if (room.role === 'returning' && npc.from === 'betrayer') body = 'A figure you hoped never to see again steps from the shadows: ' + npc.name + ', who betrayed you. ' + cap(npc.name) + ' has seen you too, and does not run.';
+    if (room.role === 'returning' && npc.from === 'abandoned') body = 'A familiar figure steps from the shadows: ' + npc.name + ', whom you left bound and went on without. ' + cap(npc.name) + ' is thin, and does not smile.';
+    else if (room.role === 'returning' && npc.from === 'betrayer') body = 'A figure you hoped never to see again steps from the shadows: ' + npc.name + ', who betrayed you. ' + cap(npc.name) + ' has seen you too, and does not run.';
     else if (room.role === 'returning') body = 'A familiar figure steps from the shadows: ' + npc.name + ', whom you met before. ' + (npc.from === 'villain_spared' ? 'They look wary, but not hostile.' : 'They look glad to see you.');
     else body = fill(pickR(TPL.lead.social), { role: role.n, d: role.d, act: NPC_ACT[room.role] });
   } else if (TPL.lead[room.type]) {
@@ -393,12 +413,19 @@ function buildSocial(room, ch, add) {
     add(C('Cut ' + npc.name + ' loose and ask what ' + npc.pr.o + ' knows', Object.assign(stat('persuasion', room.dcTalk), { kind: 'check', style: 'charm', drive: 'curiosity', s: { att: { ally: 2 }, ally: 'join', clue: 1, deed: 'Freed ' + npc.name + ' and learned the layout' }, f: { att: { ally: 1 }, ally: 'join', deed: 'Freed ' + npc.name }, ok: npc.name + ' tells you what ' + npc.pr.o + ' saw, and which doors to avoid.', no: npc.name + ' is too shaken to talk, but is grateful.' })));
     add(C('Tell ' + npc.name + ' to wait here, safe', { kind: 'auto', drive: 'mercy', s: { att: { ally: 1 }, flags: ['ally_left_safe'], deed: 'Freed ' + npc.name + ' and sent ' + npc.pr.o + ' to safety' }, fx: { ally: 'leave' }, ok: 'You free the captive and send ' + npc.pr.o + ' to the exit. ' + npc.name + ' wants to come but does not argue.' }));
     ch.forEach((c) => { if (c.s && c.s.ally === 'join') { /* ally joins */ } });
-    add(C('Leave ' + npc.name + ' for now. You cannot spare the time', { kind: 'auto', drive: 'greed', s: { att: { ally: -1 }, flags: ['ally_abandoned'], deed: 'Left ' + npc.name + ' bound', cb: npc.name + ' will remember you walked away.' }, ok: 'You turn from the pleading eyes and press deeper.' }));
+    add(C('Leave ' + npc.name + ' for now. You cannot spare the time', { kind: 'auto', drive: 'greed', s: { att: { ally: -1 }, flags: ['ally_abandoned'], mem: 'abandoned', deed: 'Left ' + npc.name + ' bound', cb: npc.name + ' will remember you walked away.' }, ok: 'You turn from the pleading eyes and press deeper.' }));
     return;
   }
   const dcH = room.dcHelp, dcT = room.dcTalk, dcL = room.dcLie, dcI = room.dcThreat;
   const nm = npc.name;
   const help = { prisoner: 'Free', deserter: 'Reassure', scholar: 'Lift the shelf off', rival: 'Offer to share the spoils', trader: 'Buy supplies', returning: 'Ask for help' }[role] || 'Help';
+  if (role === 'returning' && npc.from === 'abandoned') {
+    add(C('Apologise to ' + nm, Object.assign(stat('persuasion', dcH), { alt: 'insight', kind: 'check', style: 'charm', drive: 'mercy', s: { clue: 1, settle: 'atoned', att: { ret: 2 }, deed: 'Made amends to ' + nm }, f: { att: { ret: 0 } }, ok: nm + ' is quiet for a long moment. "You came back. That counts for something."', no: nm + ' turns away. "Words are cheap."' })));
+    add(C('Make it right with coin', { kind: 'trade', cost: 15 + 5 * L, s: { clue: 1, settle: 'atoned', att: { ret: 2 }, items: ['potion'], deed: 'Paid ' + nm + ' what was owed' }, ok: nm + ' takes the coin, and gives you a potion and a grudging nod.', no: 'You do not have the coin.' }));
+    add(C('Ask ' + nm + ' to fight beside you', Object.assign(stat('persuasion', dcT + 2), { kind: 'check', style: 'charm', s: { att: { ret: 1 }, ally: 'join_ret', settle: 'atoned', deed: nm + ' fights beside you again' }, f: { att: { ret: -1 } }, ok: nm + ' hesitates, then falls in at your side. "Do not leave me again."', no: nm + ' shakes ' + 'their head. "Not after last time."' })));
+    add(C('Walk on', { kind: 'auto', s: { att: { ret: -1 }, deed: 'Passed ' + nm + ' in silence' }, ok: 'You go on. You do not look back this time either.' }));
+    return;
+  }
   if (role === 'returning' && npc.from === 'betrayer') {
     add(C('Make ' + nm + ' answer for it', { kind: 'combat', drive: 'vengeance', fx: { combat: { enemies: ['traitor'], ret: 'ret' }, att: { ret: -3 }, flags: ['ret_fought'], deed: 'Faced ' + nm + ' at last' }, ok: 'You draw before ' + nm + ' can speak.' }));
     add(C('Demand to know why', Object.assign(stat('intimidation', dcI), { alt: 'insight', kind: 'check', style: 'force', drive: 'curiosity', s: { clue: 2, settle: 'answered', att: { ret: 0 }, deed: 'Made ' + nm + ' explain' }, f: { att: { ret: -2 }, alert: 1 }, ok: nm + ' stammers out the truth: who paid, and what waits ahead.', no: nm + ' spits at your feet and shouts for the others. That carried.' })));

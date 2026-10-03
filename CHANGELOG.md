@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.0] - 2026-10-02
+
+### Added
+
+- More things your hero remembers: an ally falling in battle (Loss), leaving a captive ally bound, sparing the villain, or killing one whose story you learned (Hard choice), and finishing an adventure after being left for dead (Triumph). They appear in the Journal's Memories tab, the markdown export, and as "Think over…" options at rest stops.
+- More ways the story brings memories back: an ally you left bound can turn up in a later adventure, thin and wary, and you can apologise, make it right with coin, ask them to fight beside you, or walk on (making amends settles the memory). A rest stop in a later adventure can recall an ally you lost.
+
 ## [1.5.0] - 2026-10-02
 
 ### Added

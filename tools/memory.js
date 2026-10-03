@@ -150,6 +150,51 @@ function mkHero(w, name) {
     ok(h.memories.find((m) => m.id === 'm3').text.startsWith('Dunmore betrayed'), 'and the memory is untouched');
     ok(errs.length === 0, 'no script errors' + (errs.length ? ': ' + errs.slice(0, 3).join('; ') : ''));
   }
+  /* new memory kinds and their callbacks */
+  console.log('--- loss / abandoned ally / endings');
+  {
+    const { w, errs } = await boot();
+    const D = w.__delve;
+    const A = D.api;
+    const h = mkHero(w, 'Ingrid');
+    A.beginRun(h, 'mem-test-4', 'random');
+    const adv = D.run.adv;
+    adv.npcs.ally = { id: 'ally', name: 'Tilda', role: 'scout', pr: { o: 'her', p: 'her' }, att: 1, met: true, alive: true, active: true, captive: false, betrayer: false, hp: 14, hpMax: 14 };
+    A.rememberLoss(adv.npcs.ally);
+    ok(h.memories.some((m) => m.kind === 'loss' && m.who === 'Tilda'), 'an ally falling is remembered as a loss');
+    A.rememberLoss(adv.npcs.ally);
+    ok(h.memories.filter((m) => m.kind === 'loss').length === 1, 'the same loss is not recorded twice');
+    A.applyFx({ mem: 'abandoned', flags: ['ally_abandoned'] });
+    const ab = h.memories.find((m) => m.kind === 'choice');
+    ok(ab && ab.ret === 'abandoned' && ab.who === 'Tilda', 'leaving a captive ally bound is remembered as a hard choice');
+    D.run.led.flags.defeated = true;
+    A.rememberEnding('spared', true);
+    ok(h.memories.some((m) => m.kind === 'choice' && /let .* walk away/.test(m.text)), 'sparing the villain is remembered');
+    ok(h.memories.some((m) => m.kind === 'triumph'), 'winning after being left for dead is a triumph');
+    ok(h.memories.length <= 12, 'memory list stays capped');
+    A.leaveRun();
+    const md = A.heroMarkdown(h);
+    ok(/\(loss, Tilda\)/.test(md) && /\(triumph\)/.test(md) && /\(hard choice, Tilda\)/.test(md), 'markdown names each kind');
+
+    A.beginRun(h, 'mem-test-5', 'random');
+    const a2 = D.run.adv;
+    ok(a2.npcs.ret && a2.npcs.ret.from === 'abandoned' && a2.npcs.ret.name === 'Tilda', 'the ally you left bound returns');
+    const rid = Object.keys(a2.rooms).find((k) => a2.rooms[k].npc === 'ret');
+    A.enterRoom(rid);
+    const labels = D.run.cur.choices.map((c) => c.label);
+    ok(labels.some((l) => /Apologise/.test(l)) && labels.some((l) => /coin/.test(l)) && labels.some((l) => /Walk on/.test(l)), 'abandoned-ally scene offers amends: ' + labels.join(' | '));
+    const ap = D.run.cur.choices.find((c) => /Apologise/.test(c.label));
+    A.applyFx(ap.s);
+    ok(h.memories.find((m) => m.id === ab.id).resolved === 'atoned' && /made it right/.test(h.memories.find((m) => m.id === ab.id).text), 'making amends settles the memory');
+
+    const rid2 = Object.keys(a2.rooms).find((k) => a2.rooms[k].type === 'combat');
+    a2.rooms[rid2].type = 'rest'; a2.rooms[rid2].kind = 'camp';
+    A.enterRoom(rid2);
+    ok(D.run.log.some((e) => /thinking of Tilda/.test((e.t || '') + (e.tpl || ''))), 'a rest stop recalls the fallen ally');
+    const lab = D.run.cur.choices.map((c) => c.label);
+    ok(lab.some((l) => /Remember Tilda|Remember getting up again|Think over/.test(l)), 'rest offers to dwell on a memory: ' + lab.join(' | '));
+    ok(errs.length === 0, 'no script errors' + (errs.length ? ': ' + errs.slice(0, 3).join('; ') : ''));
+  }
   console.log(fails ? 'FAILED ' + fails : 'ALL OK');
   process.exit(fails ? 1 : 0);
 })();

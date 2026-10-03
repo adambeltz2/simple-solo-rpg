@@ -18,9 +18,10 @@ Live: https://adambeltz2.github.io/simple-solo-rpg/
   allies and original ASCII portraits.
 - Heroes persist between adventures: milestone leveling to 5, a chronicle, and
   consequences (a spared villain can return in a later adventure).
-- Heroes remember: being left for dead or betrayed is saved as a memory (Journal →
-  Memories, editable) that the story can bring back, such as a betrayer who returns
-  in your next adventure. At rest stops you can sit with a memory for a little
+- Heroes remember: being left for dead, betrayed, losing an ally, a hard choice or a
+  hard-won finish is saved as a memory (Journal → Memories, editable) that the story
+  can bring back, such as a betrayer or an ally you left behind returning in your next
+  adventure. At rest stops you can sit with a memory for a little
   steadiness, and with the on-device narrator on you can have a memory retold in your
   hero's voice (you keep or discard the retelling).
 - Read back at any time: scroll up in the story (a "↓ Latest" button returns you), or

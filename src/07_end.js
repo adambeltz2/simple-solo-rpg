@@ -85,6 +85,7 @@ function finishAdventure(kind) {
     S.fallen.push({ name: hero.name, cls: hero.cls, species: hero.species, level: hero.level, adventures: hero.adventures, title: adv.titleFull, deeds });
   }
   paras.forEach((p, i) => narr(p, factsFor('epilogue', p)));
+  if (kind !== 'death') rememberEnding(kind, win);
   if (deeds.length) say('sys', 'Deeds: ' + deeds.join(' • '));
   if (lv) say('sys', '⬆ You reach level ' + hero.level + '! +' + lv.gain + ' max HP. ' + lv.note);
   else if (win && hero.level >= 5) say('sys', 'You are at the height of your power for now.');

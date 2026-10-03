@@ -683,5 +683,5 @@ async function boot() {
   }
 }
 window.__delve = { get S() { return S; }, get run() { return run; }, get hero() { return hero; }, V, Dice, onAct, boot, AI, Narrator, freeAction, keywordIntent, parseIntent, setRand: (f) => { dRand.f = f; },
-  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, down, applyFx, memoryIdeas, dwellMemory, killEnemy, leaveRun, heroMarkdown, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
+  api: { generateAdventure, beginRun, enterRoom, startCombat, cAct, livingEnemies, powerList, heroAC, readyHero, levelUp, newHero, bossPrep, down, applyFx, memoryIdeas, dwellMemory, rememberLoss, rememberEnding, settleBetrayer, killEnemy, leaveRun, heroMarkdown, setHero: (h) => { hero = h; }, rollDice, MON, BOSS, THEMES, CLASSES } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

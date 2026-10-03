@@ -130,6 +130,10 @@ function enterRoom(id) {
   } else {
     text = roomIntro(room);
     if (cb) text += ' ' + cb;
+    if (room.type === 'rest') {
+      const lm = (hero.memories || []).find((m) => m.kind === 'loss' && !m.shown && m.seed !== adv.seed);
+      if (lm) { text += ' In the quiet you find yourself thinking of ' + lm.who + ', who should be here.'; lm.shown = true; }
+    }
     say('head', cap(room.name) + (room.type === 'social' ? ' — ' + (npcOf(room.npc).name) : ''));
   }
   const keep = run.cur && run.cur.prep ? run.cur.prep : null;
