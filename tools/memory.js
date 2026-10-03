@@ -218,7 +218,8 @@ function mkHero(w, name) {
     q('#actsin [data-a="readit"]').click();
     ok(w.document.querySelectorAll('#actsin .opt').length >= 2 && !q('#actsin [data-a="readit"]'), 'Continue reveals the choices');
     /* Skip while writing */
-    D.onAct('pick:' + D.run.cur.choices[0].id);
+    /* an automatic choice, so no Fortune prompt can intervene */
+    D.onAct('pick:' + D.run.cur.choices.find((c) => c.kind === 'auto').id);
     ok(!!q('#actsin .hold'), 'the next passage holds again');
     q('#actsin [data-a="skipnarr"]').click();
     ok(!q('#actsin .hold') && !q('#actsin [data-a="readit"]') && w.document.querySelectorAll('#actsin .opt').length >= 1, 'Skip drops the hold and shows the choices');
