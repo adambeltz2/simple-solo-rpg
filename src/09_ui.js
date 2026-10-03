@@ -153,7 +153,10 @@ function entryCls(e) {
 }
 function setEntry(el, e) {
   el.className = entryCls(e);
-  el.textContent = e.wait ? '' : e.t;
+  if (e.k === 'narr' && e.wait) {
+    el.classList.add('think');
+    el.innerHTML = '<span class="dots" role="status" aria-label="The narrator is writing"><i></i><i></i><i></i></span>';
+  } else el.textContent = e.t;
 }
 function appendLog() {
   const log = document.getElementById('log');

@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.1] - 2026-10-03
+
+### Added
+
+- A "thinking" indicator: while the on-device narrator is working on a passage, the story shows three pulsing dots (instead of an empty line with a cursor) until its first words arrive.
+
+### Changed
+
+- Scenes with someone to talk to now resolve after one action, like every other scene. Before, the same menu came back after your first choice and asked again; now you get the result and "Continue deeper".
+
 ## [1.6.0] - 2026-10-02
 
 ### Added

@@ -248,14 +248,9 @@ function promoteReturning() {
 
 /* after any choice: work out what the player may do next in this room */
 function settleRoom() {
-  const room = run.adv.rooms[run.roomId];
   const cur = run.cur;
-  const left = [];
-  if (room.type === 'social' && cur.acts < 2) {
-    cur.choices.forEach((c) => { if (!cur.used.includes(c.id) && c.kind !== 'combat') left.push(c); });
-  }
   cur.resolved = true;
-  cur.choices = left.concat([C('Continue deeper', { id: 'continue', kind: 'next' })]);
+  cur.choices = [C('Continue deeper', { id: 'continue', kind: 'next' })];
   save();
   changed();
 }
